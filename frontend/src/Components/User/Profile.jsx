@@ -35,7 +35,7 @@ const Profile = () => {
         };
 
         try {
-            const { data } = await axios.get(`http://localhost:8000/api/v1/users/get-user/${userId}`, config);
+            const { data } = await axios.get(`${baseURL}/users/get-user/${userId}`, config);
             setUser(data.user); // Store user data in state
             setLoading(false);
         } catch (error) {

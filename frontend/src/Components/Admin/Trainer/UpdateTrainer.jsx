@@ -40,7 +40,7 @@ const UpdateTrainer = () => {
     const fetchTrainer = async () => {
       try {
         const { data } = await axios.get(
-          `http://localhost:8000/api/v1/users/get-user/${id}`
+          `${baseURL}/users/get-user/${id}`
         );
         setTrainer({
           name: data.user.name,
@@ -90,7 +90,7 @@ const UpdateTrainer = () => {
 
     try {
       await axios.put(
-        `http://localhost:8000/api/v1/users/update-trainer/${id}`,
+        `${baseURL}/users/update-trainer/${id}`,
         formData,
         { headers: { "Content-Type": "multipart/form-data" } }
       );

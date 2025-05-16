@@ -65,7 +65,7 @@ const UpdateProfile = () => {
         };
     
         try {
-            const { data } = await axios.get(`http://localhost:8000/api/v1/users/get-user/${userId}`, config);
+            const { data } = await axios.get(`${baseURL}/users/get-user/${userId}`, config);
             
             setValue('name', data.user.name);
             setValue('email', data.user.email);
@@ -109,7 +109,7 @@ const UpdateProfile = () => {
             },
         };
         try {
-            const { data } = await axios.put(`http://localhost:8000/api/v1/users/me/update`, userData, config);
+            const { data } = await axios.put(`${baseURL}/users/me/update`, userData, config);
             setIsUpdated(data.success);
             setLoading(false);
             toast.success('Profile updated successfully', { position: 'bottom-right' });

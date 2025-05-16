@@ -42,7 +42,7 @@ const BranchList = ({ refresh }) => {
   const fetchBranches = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://localhost:8000/api/v1/branch/get-all-branches`);
+      const response = await axios.get(`${baseURL}/branch/get-all-branches`);
       setBranches(response.data.branch);
     } catch (error) {
       console.error("Error fetching branches", error);
@@ -55,7 +55,7 @@ const BranchList = ({ refresh }) => {
     if (!window.confirm("Are you sure you want to delete this branch?")) return;
 
     try {
-      await axios.delete(`http://localhost:8000/api/v1/branch/delete-branch/${id}`);
+      await axios.delete(`${baseURL}/branch/delete-branch/${id}`);
       setBranches(branches.filter((branch) => branch._id !== id));
     } catch (error) {
       console.error("Error deleting branch", error);
