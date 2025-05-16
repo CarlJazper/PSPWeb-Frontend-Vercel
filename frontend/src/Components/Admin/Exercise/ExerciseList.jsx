@@ -42,7 +42,7 @@ const ExerciseList = () => {
   const fetchExercises = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`${baseURL}/exerciseRoutes/get-exercise`);
+      const response = await axios.get(`${baseURL}/exercises/get-exercise`);
       console.log("API Response:", response.data); // Check if `exercises` exists
 
       if (!response.data.exercises) {
