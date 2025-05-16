@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
+import baseURL from "../../../utils/baseURL";
 
 const NewPassword = () => {
     const [password, setPassword] = useState('')
@@ -21,7 +22,7 @@ const NewPassword = () => {
                     'Content-Type': 'application/json'
                 }
             }
-            const { data } = await axios.put(`http://localhost:4001/api/v1/password/reset/${token}`, passwords, config)
+            const { data } = await axios.put(`${baseURL}/password/reset/${token}`, passwords, config)
             setSuccess(data.success)
         } catch (error) {
             setError(error)

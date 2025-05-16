@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getToken } from '../../utils/helpers';
 import { Box, Avatar, Typography, Button, Paper, Grid, Divider, Stack } from '@mui/material';
+import baseURL from "../../../utils/baseURL";
 
 const Profile = () => {
     const [loading, setLoading] = useState(true);
