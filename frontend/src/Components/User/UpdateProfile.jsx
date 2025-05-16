@@ -8,7 +8,7 @@ import { useForm } from 'react-hook-form';
 import * as yup from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Box, Typography, TextField, Button, Avatar, CircularProgress, Grid, Paper, } from '@mui/material';
-import baseURL from "../../../utils/baseURL";
+import baseURL from "../../utils/baseURL";
 
 // Validation Schema using Yup
 const schema = yup.object().shape({

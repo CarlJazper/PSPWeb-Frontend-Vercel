@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import { getToken } from '../../utils/helpers';
 import { Box, Grid, TextField, Button, CircularProgress, Paper, Typography } from '@mui/material';
+import baseURL from "../../utils/baseURL";
 
 const UpdatePassword = () => {
     const [oldPassword, setOldPassword] = useState('');
@@ -22,7 +23,7 @@ const UpdatePassword = () => {
                     'Authorization': `Bearer ${getToken()}`
                 }
             };
-            const { data } = await axios.put(`${import.meta.env.VITE_API}/password/update`, formData, config);
+            const { data } = await axios.put(`${baseURL}/password/update`, formData, config);
             setIsUpdated(data.success);
             setLoading(false);
             toast.success('Password updated successfully', { position: 'bottom-right' });
