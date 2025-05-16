@@ -47,7 +47,7 @@ const Login = () => {
                     'Content-Type': 'application/json',
                 },
             };
-            const response = await axios.post(`${baseURL}/api/v1/users/login`, { email, password }, config);
+            const response = await axios.post(`${baseURL}/users/login`, { email, password }, config);
             authenticate(response.data, (redirectPath) => navigate(redirect || redirectPath || '/'));
         } catch (error) {
             toast.error('Invalid user or password', {
