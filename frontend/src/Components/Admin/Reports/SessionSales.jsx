@@ -88,7 +88,10 @@ const TrainingSessions = () => {
           <Grid item xs={12} sm={4} key={index}>
             <Card>
               <CardContent>
-                <Typography variant="h6">{key.replace("Sales", " Session Sales")}</Typography>
+                <Typography variant="h6">
+                  {key.charAt(0).toUpperCase() + key.slice(1).replace("Sales", " Session Sales")}
+                </Typography>
+
                 <Typography variant="h4">{formatCurrency(salesData?.[key])}</Typography>
               </CardContent>
             </Card>
