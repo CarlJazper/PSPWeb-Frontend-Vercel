@@ -199,7 +199,7 @@ const LocationSection = () => {
                         variant="body1"
                         sx={{ color: 'rgba(255,255,255,0.8)' }}
                       >
-                        Open: 7AM - 10PM (DAILY)
+                        Open: 6AM - 11PM (DAILY)
                       </Typography>
                     </Box>
                   </Grid>
