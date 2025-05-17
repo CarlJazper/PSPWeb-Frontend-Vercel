@@ -181,33 +181,6 @@ const Membership = () => {
                 >
                   "If you don't invest in it, if you don't put in the work, you won't get the results."
                 </Typography>
-
-                <motion.div
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button
-                    variant="contained"
-                    endIcon={<ArrowForwardIcon />}
-                    sx={{
-                      background: 'linear-gradient(45deg, #FF6B6B, #FF8E53)',
-                      color: '#fff',
-                      py: 2,
-                      px: 4,
-                      borderRadius: 3,
-                      fontSize: '1.1rem',
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      transition: 'all 0.3s ease',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #FF8E53, #FF6B6B)',
-                        boxShadow: '0 10px 20px rgba(255,107,107,0.3)',
-                      },
-                    }}
-                  >
-                    Start Your Journey Now
-                  </Button>
-                </motion.div>
               </Box>
             </motion.div>
           </Grid>
