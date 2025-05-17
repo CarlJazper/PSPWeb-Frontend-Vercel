@@ -140,7 +140,7 @@ const Services = () => {
       title: 'Online Classes',
       image: `/images/service-img-3.jpg`,
       icon: <VideocamIcon sx={{ fontSize: 35, color: '#fff' }} />,
-      description: 'Access live and on-demand fitness classes from the comfort of home.',
+      description: 'Access live and on-demand fitness classes from the comfort of your home via the PSP Facebook page.',
       gradient: 'linear-gradient(135deg, #A66CFF, #9C55FF)',
     },
     {
