@@ -1,23 +1,28 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Box, Grid, Card, CardContent, Typography, Button, CircularProgress, Divider } from '@mui/material';
-import { Group, Store, FitnessCenter, Person } from '@mui/icons-material'; // Added Person icon for trainers
-import { getToken } from '../../utils/helpers';
-import baseURL from '../../utils/baseURL';
-import { motion } from 'framer-motion';
-import axios from 'axios';
 import {
+    Box,
+    Grid,
+    Card,
+    CardContent,
+    Typography,
+    Button,
+    CircularProgress,
+    Divider,
     Container,
-    CardHeader,
     Tabs,
     Tab,
     IconButton,
     Collapse,
-    useTheme,
     Paper,
     styled,
+    useTheme,
 } from '@mui/material';
 import {
+    Group,
+    Store,
+    FitnessCenter,
+    Person,
     BarChart as ChartIcon,
     MonitorWeight as GymIcon,
     People as UserIcon,
@@ -27,6 +32,11 @@ import {
     Refresh as RefreshIcon,
     ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
+import axios from 'axios';
+
+import { getToken } from '../../utils/helpers';
+import baseURL from '../../utils/baseURL';
+
 import LogCharts from './Reports/LogCharts';
 import UserLog from './Reports/UserLogs';
 import MembershipSales from './Reports/MembershipSales';
@@ -34,150 +44,112 @@ import GymMonitoring from './Reports/GymMonitoring';
 import TrainingSessions from './Reports/TrainingSession';
 import SessionSales from './Reports/SessionSales';
 
-const StyledContainer = styled(Container)(({ theme }) => ({
-    padding: theme.spacing(4),
-    background: '#111A24',
+const PageContainer = styled(Box)(({ theme }) => ({
     minHeight: '100vh',
-    borderRadius: theme.spacing(2),
+    paddingTop: theme.spacing(4),
+    paddingBottom: theme.spacing(4),
 }));
 
-const HeaderCard = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(3),
-    background: '#FFAC1C',
-    borderRadius: theme.spacing(2),
-    marginBottom: theme.spacing(4),
+const StatCard = styled(Card)(({ theme }) => ({
+    background: '#fff',
+    color: theme.palette.text.primary,
+    borderRadius: '16px',
+    boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.06)',
+    transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+    '&:hover': {
+        transform: 'scale(1.03)',
+        boxShadow: '0px 6px 24px rgba(0, 0, 0, 0.08)',
+    },
     display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)',
+    flexDirection: 'column',
+    height: '100%',
+}));
+
+const StatCardContent = styled(CardContent)(({ theme }) => ({
+    flexGrow: 1,
+    padding: theme.spacing(3),
+}));
+
+const StatCardButton = styled(Button)(({ theme }) => ({
+    justifyContent: 'center',
+    width: '100%',
+    color: '#007aff',
+    textTransform: 'none',
+    fontWeight: 500,
+    padding: theme.spacing(1.5),
+    borderTop: `1px solid ${theme.palette.divider}`,
+    '&:hover': {
+        background: 'rgba(0, 122, 255, 0.04)',
+    },
+}));
+
+const ReportsHeader = styled(Box)(({ theme }) => ({
+    background: '#FFD166',
+    borderRadius: '12px',
+    padding: theme.spacing(3),
+    marginBottom: theme.spacing(3),
+    textAlign: 'center',
+    position: 'relative',
+}));
+
+const ReportsTabsContainer = styled(Paper)(({ theme }) => ({
+    borderRadius: '12px',
+    background: '#ffffff',
+    boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
+    padding: theme.spacing(0.5, 2),
+    marginBottom: theme.spacing(2),
 }));
 
 const StyledTab = styled(Tab)(({ theme }) => ({
-    minHeight: 60,
-    fontWeight: 600,
+    minHeight: 70,
+    fontWeight: 500,
     fontSize: '0.9rem',
     textTransform: 'none',
-    borderRadius: theme.spacing(1),
-    margin: theme.spacing(0, 0.5),
-    color: '#64748b',
+    borderRadius: '8px',
+    margin: theme.spacing(0.5, 0.5),
+    color: '#515154',
     '&.Mui-selected': {
-        color: '#1a237e',
-        background: 'rgba(26, 35, 126, 0.1)',
+        color: '#007aff',
+        background: 'rgba(0, 122, 255, 0.1)',
     },
     '&:focus': {
         outline: 'none',
     },
-    '&.Mui-focusVisible': {
-        outline: 'none',
-        backgroundColor: 'rgba(26, 35, 126, 0.05)',
-    },
 }));
 
-const StyledCard = styled(Card)(({ theme }) => ({
+const ReportItemCard = styled(Card)(({ theme }) => ({
     background: '#ffffff',
-    borderRadius: theme.spacing(2),
-    boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)',
+    borderRadius: '16px',
+    boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.05)',
     marginBottom: theme.spacing(3),
 }));
 
-const StyledCardHeader = styled(CardHeader)(({ theme }) => ({
-    background: '#f1f5f9',
-    padding: theme.spacing(2),
-    '& .MuiCardHeader-title': {
-        fontSize: '1.25rem',
-        fontWeight: 600,
-        color: '#334155',
-    },
+const ReportItemCardHeader = styled(Box)(({ theme }) => ({
+    padding: theme.spacing(2, 3),
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottom: `1px solid ${theme.palette.divider}`,
+    background: '#fcfcfc',
 }));
 
-function TabPanel({ children, value, index, ...other }) {
+function TabPanel({ children, value, index }) {
     return (
-        <div
-            role="tabpanel"
-            hidden={value !== index}
-            id={`report-tabpanel-${index}`}
-            aria-labelledby={`report-tab-${index}`}
-            style={{ outline: 'none' }}
-            {...other}
-        >
-            {value === index && <Box sx={{ p: 2 }}>{children}</Box>}
+        <div hidden={value !== index} id={`report-tabpanel-${index}`} aria-labelledby={`report-tab-${index}`}>
+            {value === index && <Box sx={{ pt: 1 }}>{children}</Box>}
         </div>
     );
 }
 
 const Dashboard = () => {
-  const theme = useTheme();
-  const [loading, setLoading] = useState(true);
-  const [allUsers, setAllUsers] = useState([]);
-  const [branchesCount, setBranchesCount] = useState(0);
-  const [exercisesCount, setExercisesCount] = useState(0);
-  const [trainersCount, setTrainersCount] = useState(0);
-
-    const fetchAdminData = async () => {
-      try {
-        const config = { headers: { Authorization: `Bearer ${getToken()}` } };
-
-            const { data: usersData } = await axios.get(`${baseURL}/users/get-all-users`, config);
-            setAllUsers(usersData.users);
-
-            const { data: branchesData } = await axios.get(`${baseURL}/branch/get-all-branches`);
-            setBranchesCount(branchesData.branch.length);
-
-            const { data: exercisesData } = await axios.get(`${baseURL}/exercises/get-all-exercise`);
-            setExercisesCount(exercisesData.exercises.length);
-
-            const { data: trainersData } = await axios.get(`${baseURL}/availTrainer/get-all-trainers`);
-            setTrainersCount(trainersData.length);
-
-            setLoading(false);
-        } catch (error) {
-            console.error(error);
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchAdminData();
-    }, []);
-
-    const renderStatCard = (title, value, icon, gradient, link) => (
-        <Grid item xs={12} sm={6} md={3}>
-            <Card
-                sx={{
-                    background: gradient,
-                    color: '#fff',
-                    borderRadius: 2,
-                    boxShadow: 5,
-                    transition: 'transform 0.3s ease-in-out',
-                    '&:hover': { transform: 'scale(1.05)' },
-                }}
-            >
-                <CardContent>
-                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-                        <Typography variant="h6">{title}</Typography>
-                        {icon}
-                    </Box>
-                    <Divider sx={{ background: 'rgba(255,255,255,0.3)', mb: 2 }} />
-                    <Typography variant="h4" align="center">
-                        {value}
-                    </Typography>
-                </CardContent>
-                {link && (
-                    <Button
-                        component={Link}
-                        to={link}
-                        sx={{ justifyContent: 'center', width: '100%', color: '#fff', textTransform: 'none' }}
-                        variant="text"
-                    >
-                        View Details
-                    </Button>
-                )}
-            </Card>
-        </Grid>
-    );
-
+    const theme = useTheme();
+    const [loading, setLoading] = useState(true);
+    const [allUsers, setAllUsers] = useState([]);
+    const [branchesCount, setBranchesCount] = useState(0);
+    const [exercisesCount, setExercisesCount] = useState(0);
+    const [trainersCount, setTrainersCount] = useState(0);
     const [tabValue, setTabValue] = useState(0);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isReportLoading, setIsReportLoading] = useState(false);
     const [expanded, setExpanded] = useState({
         charts: true,
         gym: true,
@@ -187,224 +159,182 @@ const Dashboard = () => {
         sessionsales: true,
     });
 
-    const handleTabChange = (event, newValue) => {
+    const fetchAdminData = async () => {
+        setLoading(true);
+        try {
+            const config = { headers: { Authorization: `Bearer ${getToken()}` } };
+            const [usersRes, branchesRes, exercisesRes, trainersRes] = await Promise.all([
+                axios.get(`${baseURL}/users/get-all-users`, config),
+                axios.get(`${baseURL}/branch/get-all-branches`),
+                axios.get(`${baseURL}/exercises/get-all-exercise`),
+                axios.get(`${baseURL}/availTrainer/get-all-trainers`),
+            ]);
+
+            setAllUsers(usersRes.data.users);
+            setBranchesCount(branchesRes.data.branch.length);
+            setExercisesCount(exercisesRes.data.exercises.length);
+            setTrainersCount(trainersRes.data.length);
+        } catch (error) {
+            console.error('Error fetching admin data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchAdminData();
+    }, []);
+
+    const renderStatCard = (title, value, icon, accentColor, link) => (
+        <Grid item xs={12} sm={6} md={3}>
+            <StatCard>
+                <StatCardContent>
+                    <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
+                        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                            {title}
+                        </Typography>
+                        {React.cloneElement(icon, { sx: { fontSize: 32, color: accentColor } })}
+                    </Box>
+                    <Divider sx={{ mb: 2 }} />
+                    <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>
+                        {value}
+                    </Typography>
+                </StatCardContent>
+                {link && (
+                    <StatCardButton component={Link} to={link}>
+                        View Details
+                    </StatCardButton>
+                )}
+            </StatCard>
+        </Grid>
+    );
+
+    const handleTabChange = (_, newValue) => {
         setTabValue(newValue);
     };
 
-    const handleRefresh = async () => {
-        setIsLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setIsLoading(false);
+    const handleRefreshReports = async () => {
+        setIsReportLoading(true);
+        await new Promise((r) => setTimeout(r, 1000));
+        setIsReportLoading(false);
     };
 
     const handleExpand = (section) => {
-        setExpanded(prev => ({
-            ...prev,
-            [section]: !prev[section]
-        }));
+        setExpanded((prev) => ({ ...prev, [section]: !prev[section] }));
     };
 
     const reportSections = [
-        {
-            id: 'charts',
-            title: 'Log Charts',
-            icon: <ChartIcon />,
-            component: <LogCharts />,
-            color: '#2e7d32',
-        },
-        {
-            id: 'users',
-            title: 'User Logs',
-            icon: <UserIcon />,
-            component: <UserLog />,
-            color: '#7b1fa2',
-        },
-        {
-            id: 'gym',
-            title: 'Gym Monitoring',
-            icon: <GymIcon />,
-            component: <GymMonitoring />,
-            color: '#1565c0',
-        },
-        {
-            id: 'sales',
-            title: 'Membership Sales',
-            icon: <SalesIcon />,
-            component: <MembershipSales />,
-            color: '#c62828',
-        },
-        {
-            id: 'sessions',
-            title: 'Training Sessions',
-            icon: <SessionIcon />,
-            component: <TrainingSessions />,
-            color: '#c62828',
-        },
-        {
-            id: 'sessionsales',
-            title: 'Session Sales',
-            icon: <SessionSaleIcon />,
-            component: <SessionSales />,
-            color: '#c62828',
-        },
+        { id: 'charts', title: 'Log Charts', icon: <ChartIcon />, component: <LogCharts />, color: '#34c759' },
+        { id: 'users', title: 'User Logs', icon: <UserIcon />, component: <UserLog />, color: '#5856d6' },
+        { id: 'gym', title: 'Gym Monitoring', icon: <GymIcon />, component: <GymMonitoring />, color: '#007aff' },
+        { id: 'sales', title: 'Membership Sales', icon: <SalesIcon />, component: <MembershipSales />, color: '#ff9500' },
+        { id: 'sessions', title: 'Training Sessions', icon: <SessionIcon />, component: <TrainingSessions />, color: '#ff3b30' },
+        { id: 'sessionsales', title: 'Session Sales', icon: <SessionSaleIcon />, component: <SessionSales />, color: '#af52de' },
     ];
 
     return (
-        <>
-            <Box display="flex">
-                <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
-                    <Typography variant="h4" sx={{ mb: 4, textAlign: 'center' }}>
-                        Dashboard
-                    </Typography>
-                    {loading ? (
-                        <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: '50vh' }}>
-                            <CircularProgress />
-                        </Box>
-                    ) : (
-                        <Grid container spacing={3}>
-                            {renderStatCard(
-                                'Users',
-                                allUsers.length,
-                                <Group sx={{ fontSize: 40 }} />,
-                                'linear-gradient(to right, #2196f3, #64b5f6)',
-                                '/admin/users'
-                            )}
-                            {renderStatCard(
-                                'Branches',
-                                branchesCount,
-                                <Store sx={{ fontSize: 40 }} />,
-                                'linear-gradient(to right, #ff9800, #ffb74d)',
-                                '/admin/branches'
-                            )}
-                            {renderStatCard(
-                                'Exercises',
-                                exercisesCount,
-                                <FitnessCenter sx={{ fontSize: 40 }} />,
-                                'linear-gradient(to right, #4caf50, #81c784)',
-                                '/admin/exercises'
-                            )}
-                            {renderStatCard(
-                                'Trainers',
-                                trainersCount,
-                                <Person sx={{ fontSize: 40 }} />, // 👤 Person icon for trainers
-                                'linear-gradient(to right, #9c27b0, #ba68c8)',
-                                '/admin/trainers' // Navigates to Trainers List page
-                            )}
-                        </Grid>
-                    )}
-                </Box>
-            </Box>
-            <StyledContainer maxWidth="lg"> 
-                <HeaderCard elevation={0}>
-                    <Typography
-                        variant="h4"
-                        sx={{
-                            color: '#000',
-                            fontWeight: 700,
-                        }}
-                    >
+        <PageContainer>
+            <Container maxWidth="xl">
+                {loading ? (
+                    <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: '30vh' }}>
+                        <CircularProgress sx={{ color: '#007aff' }} />
+                    </Box>
+                ) : (
+                    <Grid container spacing={3} sx={{ mb: 5 }}>
+                        {renderStatCard('Users', allUsers.length, <Group />, '#007aff', '/admin/users')}
+                        {renderStatCard('Branches', branchesCount, <Store />, '#ff9500', '/admin/branches')}
+                        {renderStatCard('Exercises', exercisesCount, <FitnessCenter />, '#34c759', '/admin/exercises')}
+                        {renderStatCard('Trainers', trainersCount, <Person />, '#5856d6', '/admin/trainers')}
+                    </Grid>
+                )}
+        
+                <ReportsHeader>
+                    <Typography variant="h4" sx={{ fontWeight: 600, color: '#1d1d1f' }}>
                         Reports
                     </Typography>
                     <IconButton
-                        onClick={handleRefresh}
-                        disabled={isLoading}
+                        onClick={handleRefreshReports}
+                        disabled={isReportLoading}
                         sx={{
-                            color: '#000',
-                            '&:hover': {
-                                background: 'rgba(255,255,255,0.1)',
-                            },
+                            position: 'absolute',
+                            right: 16,
+                            top: 16,
+                            color: '#007aff',
+                            '&:hover': { background: 'rgba(0, 122, 255, 0.08)' },
                         }}
                     >
-                        {isLoading ? <CircularProgress size={24} color="inherit" /> : <RefreshIcon />}
+                        {isReportLoading ? <CircularProgress size={24} color="inherit" /> : <RefreshIcon />}
                     </IconButton>
-                </HeaderCard>
+                </ReportsHeader>
 
-                <Paper
-                    sx={{
-                        borderRadius: 2,
-                        mb: 4,
-                        background: '#ffffff',
-                        boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)',
-                    }}
-                >
+                <ReportsTabsContainer>
                     <Tabs
                         value={tabValue}
                         onChange={handleTabChange}
-                        centered
+                        variant="scrollable"
+                        scrollButtons="auto"
+                        allowScrollButtonsMobile
+                        aria-label="report tabs"
                         sx={{
-                            px: 2,
-                            py: 1,
                             '& .MuiTabs-indicator': {
                                 height: 3,
-                                borderRadius: '3px',
-                                backgroundColor: '#1a237e',
+                                borderRadius: '3px 3px 0 0',
+                                backgroundColor: '#007aff',
                             },
                             '& .MuiTabs-flexContainer': {
                                 justifyContent: 'center',
-                            },
-                            '& .MuiButtonBase-root': {
-                                '&:focus': {
-                                    outline: 'none',
-                                },
+                                gap: '8px',
                             },
                         }}
                     >
+
                         {reportSections.map((section, index) => (
                             <StyledTab
                                 key={section.id}
+                                iconPosition="start"
                                 icon={React.cloneElement(section.icon, {
-                                    sx: { color: section.color }
+                                    sx: { color: tabValue === index ? '#007aff' : section.color, mr: 1 },
                                 })}
                                 label={section.title}
-                                id={`report-tab-${index}`}
                             />
                         ))}
                     </Tabs>
-                </Paper>
+                </ReportsTabsContainer>
 
                 {reportSections.map((section, index) => (
                     <TabPanel key={section.id} value={tabValue} index={index}>
-                        <StyledCard>
-                            <StyledCardHeader
-                                title={
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                        {React.cloneElement(section.icon, {
-                                            sx: { color: section.color, fontSize: 28 }
-                                        })}
-                                        <Typography
-                                            variant="h6"
-                                            sx={{
-                                                color: '#334155',
-                                                fontWeight: 600,
-                                            }}
-                                        >
-                                            {section.title}
-                                        </Typography>
-                                    </Box>
-                                }
-                                action={
-                                    <IconButton
-                                        onClick={() => handleExpand(section.id)}
-                                        sx={{
-                                            color: '#64748b',
-                                            transform: expanded[section.id] ? 'rotate(180deg)' : 'rotate(0)',
-                                            transition: 'transform 0.3s',
-                                        }}
-                                    >
-                                        <ExpandMoreIcon />
-                                    </IconButton>
-                                }
-                            />
+                        <ReportItemCard>
+                            <ReportItemCardHeader>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    {React.cloneElement(section.icon, {
+                                        sx: { color: section.color, fontSize: 26 },
+                                    })}
+                                    <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                                        {section.title}
+                                    </Typography>
+                                </Box>
+                                <IconButton
+                                    onClick={() => handleExpand(section.id)}
+                                    aria-expanded={expanded[section.id]}
+                                    sx={{
+                                        color: '#515154',
+                                        transform: expanded[section.id] ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'transform 0.2s ease',
+                                        '&:hover': { background: 'rgba(0,0,0,0.04)' },
+                                    }}
+                                >
+                                    <ExpandMoreIcon />
+                                </IconButton>
+                            </ReportItemCardHeader>
                             <Collapse in={expanded[section.id]} timeout="auto" unmountOnExit>
-                                <CardContent sx={{ p: 3, backgroundColor: '#ffffff' }}>
-                                    {section.component}
-                                </CardContent>
+                                <CardContent sx={{ p: 3 }}>{section.component}</CardContent>
                             </Collapse>
-                        </StyledCard>
+                        </ReportItemCard>
                     </TabPanel>
                 ))}
-            </StyledContainer>
-        </>
+
+            </Container>
+        </PageContainer>
     );
 };
 
