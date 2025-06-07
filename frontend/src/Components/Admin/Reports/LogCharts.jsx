@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, CircularProgress, Box } from '@mui/material';
+import { Container, Typography, CircularProgress, Box, Card, CardContent, Grid, Chip } from '@mui/material';
 import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
 import baseURL from "../../../utils/baseURL";
 
-const COLORS = ["#FFAC1C", "#8884d8", "#82ca9d", "#a678de", "#FF8042", "#f44336", "#9c27b0", "#673ab7", "#3f51b5"];
+// Color palette
+const COLORS = {
+    primary: "#007AFF",secondary: "#5856D6", success: "#34C759",warning: "#FF9500",error: "#FF3B30",purple: "#AF52DE",
+    pink: "#FF2D92",indigo: "#5856D6",teal: "#5AC8FA",gray: "#8E8E93",lightGray: "#F2F2F7",darkGray: "#1C1C1E"
+};
+
+const CHART_COLORS = [
+    COLORS.primary,COLORS.success, COLORS.warning,COLORS.purple,COLORS.pink,
+    COLORS.secondary,COLORS.teal,COLORS.error,COLORS.indigo
+];
 
 const LogCharts = () => {
     const [logs, setLogs] = useState([]);
@@ -45,7 +54,7 @@ const LogCharts = () => {
             }, {});
 
             setDailyActivityData(Object.entries(dailyActivity).map(([date, count]) => ({
-                date: format(parseISO(date), 'MMM dd, yyyy'),
+                date: format(parseISO(date), 'MMM dd'),
                 count,
             })));
 
@@ -57,21 +66,29 @@ const LogCharts = () => {
             }, {});
 
             setPeakHoursData(Object.entries(peakHours).map(([hour, count]) => ({
-                hour: format(parseISO(`2022-01-01T${hour.padStart(2, '0')}:00:00`), "h a"), // Converts to 12-hour format
+                hour: format(parseISO(`2022-01-01T${hour.padStart(2, '0')}:00:00`), "h a"),
                 count,
             })));
 
-            // 3. User Check-in Frequency
+            // 3. User Check-in Frequency (Top 10)
             const userFrequency = logs.reduce((acc, log) => {
                 const userId = log.userId._id;
                 acc[userId] = (acc[userId] || 0) + 1;
                 return acc;
             }, {});
 
-            setUserFrequencyData(Object.entries(userFrequency).map(([userId, count]) => {
-                const user = users.find((u) => u._id === userId);
-                return { name: user ? user.name : `User ${userId}`, count };
-            }));
+            const topUsers = Object.entries(userFrequency)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10)
+                .map(([userId, count]) => {
+                    const user = users.find((u) => u._id === userId);
+                    return { 
+                        name: user ? user.name.split(' ')[0] : `User ${userId.slice(-4)}`, 
+                        count 
+                    };
+                });
+
+            setUserFrequencyData(topUsers);
 
             // 4. Average Session Duration
             const sessionDurations = logs
@@ -84,112 +101,388 @@ const LogCharts = () => {
 
             setAverageSessionData([{ name: 'Average Session', duration: Math.round(averageDuration) }]);
 
-
             // 5. Active vs. Inactive Users
             const activeUsers = logs.filter(log => !log.timeOut).length;
             const inactiveUsers = logs.length - activeUsers;
             setActiveInactiveData([
-                { name: "Active", value: activeUsers },
-                { name: "Inactive", value: inactiveUsers }
+                { name: "Currently Active", value: activeUsers },
+                { name: "Checked Out", value: inactiveUsers }
             ]);
         }
     }, [logs, users]);
 
-    if (loading) return <CircularProgress />;
-    if (logs.length === 0) return <Typography variant="h5" color="gray">No logs available</Typography>;
+    // Custom tooltip component
+    const CustomTooltip = ({ active, payload, label }) => {
+        if (active && payload && payload.length) {
+            return (
+                <Box sx={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(20px)',
+                    border: '1px solid rgba(0, 0, 0, 0.1)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+                    fontSize: '14px',
+                    fontWeight: 500
+                }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                        {label}
+                    </Typography>
+                    {payload.map((entry, index) => (
+                        <Typography 
+                            key={index} 
+                            variant="body2" 
+                            sx={{ color: entry.color, fontWeight: 500 }}
+                        >
+                            {entry.name}: {entry.value}
+                        </Typography>
+                    ))}
+                </Box>
+            );
+        }
+        return null;
+    };
+
+    if (loading) {
+        return (
+            <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                minHeight: '60vh',
+                backgroundColor: COLORS.lightGray,
+                borderRadius: '15px'
+             
+            }}>
+                <CircularProgress size={40} sx={{ color: COLORS.primary }} />
+            </Box>
+        );
+    }
+
+    if (logs.length === 0) {
+        return (
+            <Container maxWidth="lg" sx={{ py: 6, textAlign: "center" }}>
+                <Typography variant="h5" sx={{ color: COLORS.gray, fontWeight: 500 }}>
+                    No logs available
+                </Typography>
+            </Container>
+        );
+    }
 
     return (
-        <Container maxWidth="lg" sx={{ py: 4, textAlign: "center" }}>
-            <Typography variant="h4" fontWeight="bold" color="primary" gutterBottom>
-                PSP <span style={{ color: "#FFAC1C" }}>Log Analytics</span>
-            </Typography>
-
-            <Box sx={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-around' }}>
-                {/* Line Chart - Daily Activity */}
-                <Box sx={{ width: '45%', my: 2 }}>
-                    <Typography variant="h6" color="#000" mb={1}>Daily User Activity</Typography>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={dailyActivityData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="date" />
-                            <YAxis />
-                            <Tooltip />
-                            <Line type="monotone" dataKey="count" stroke={COLORS[0]} strokeWidth={2} />
-                        </LineChart>
-                    </ResponsiveContainer>
+        <Box sx={{ 
+            backgroundColor: COLORS.lightGray, 
+            borderRadius: '1%',
+            minHeight: '100vh',
+            py: 4
+        }}>
+            <Container maxWidth="xl">
+                {/* Header Section */}
+                <Box sx={{ textAlign: "center", mb: 6 }}>
+                    <Typography 
+                        variant="h3" 
+                        sx={{ 
+                            fontWeight: 700,
+                            color: COLORS.darkGray,
+                            mb: 1,
+                            letterSpacing: '-0.02em'
+                        }}
+                    >
+                        Analytics Dashboard
+                    </Typography>
+                    <Typography 
+                        variant="h6" 
+                        sx={{ 
+                            color: COLORS.gray,
+                            fontWeight: 400,
+                            mb: 3
+                        }}
+                    >
+                        Real-time insights into gym activity and member engagement
+                    </Typography>
+                    
+                    {/* Stats Overview */}
+                    <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
+                        <Chip 
+                            label={`${logs.length} Total Logs`}
+                            sx={{ 
+                                backgroundColor: COLORS.primary,
+                                color: 'white',
+                                fontWeight: 600,
+                                px: 2,
+                                py: 1
+                            }}
+                        />
+                        <Chip 
+                            label={`${users.length} Members`}
+                            sx={{ 
+                                backgroundColor: COLORS.success,
+                                color: 'white',
+                                fontWeight: 600,
+                                px: 2,
+                                py: 1
+                            }}
+                        />
+                        <Chip 
+                            label={`${activeInactiveData[0]?.value || 0} Currently Active`}
+                            sx={{ 
+                                backgroundColor: COLORS.warning,
+                                color: 'white',
+                                fontWeight: 600,
+                                px: 2,
+                                py: 1
+                            }}
+                        />
+                    </Box>
                 </Box>
 
-                {/* Bar Chart - Peak Gym Hours */}
-                <Box sx={{ width: '45%', my: 2 }}>
-                    <Typography variant="h6" color="#000" mb={1}>Peak Gym Hours</Typography>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={peakHoursData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="hour" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="count">
-                                {peakHoursData.map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </Box>
+                {/* Charts Grid */}
+                <Grid container spacing={3}>
+                    {/* Daily Activity - Full Width */}
+                    <Grid item xs={12}>
+                        <Card sx={{ 
+                            borderRadius: '16px',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                            border: 'none',
+                            overflow: 'hidden'
+                        }}>
+                            <CardContent sx={{ p: 4 }}>
+                                <Typography 
+                                    variant="h5" 
+                                    sx={{ 
+                                        fontWeight: 600,
+                                        color: COLORS.darkGray,
+                                        mb: 3,
+                                        letterSpacing: '-0.01em'
+                                    }}
+                                >
+                                    Daily Activity Trends
+                                </Typography>
+                                <ResponsiveContainer width="100%" height={320}>
+                                    <LineChart data={dailyActivityData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} opacity={0.3} />
+                                        <XAxis 
+                                            dataKey="date" 
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 12, fill: COLORS.gray }}
+                                        />
+                                        <YAxis 
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 12, fill: COLORS.gray }}
+                                        />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Line 
+                                            type="monotone" 
+                                            dataKey="count" 
+                                            stroke={COLORS.primary}
+                                            strokeWidth={3}
+                                            dot={{ fill: COLORS.primary, strokeWidth: 2, r: 6 }}
+                                            activeDot={{ r: 8, stroke: COLORS.primary, strokeWidth: 2 }}
+                                        />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </Grid>
 
-                {/* Bar Chart - User Check-in Frequency */}
-                <Box sx={{ width: '45%', my: 2 }}>
-                    <Typography variant="h6" color="#000" mb={1}>User Check-in Frequency</Typography>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={userFrequencyData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="count">
-                                {userFrequencyData.map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </Box>
+                    {/* Peak Hours */}
+                    <Grid item xs={12} md={6}>
+                        <Card sx={{ 
+                            borderRadius: '16px',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                            height: '100%'
+                        }}>
+                            <CardContent sx={{ p: 4 }}>
+                                <Typography 
+                                    variant="h6" 
+                                    sx={{ 
+                                        fontWeight: 600,
+                                        color: COLORS.darkGray,
+                                        mb: 3
+                                    }}
+                                >
+                                    Peak Hours
+                                </Typography>
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <BarChart data={peakHoursData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} opacity={0.3} />
+                                        <XAxis 
+                                            dataKey="hour" 
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 11, fill: COLORS.gray }}
+                                        />
+                                        <YAxis 
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 12, fill: COLORS.gray }}
+                                        />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Bar dataKey="count" radius={[4, 4, 0, 0]}>
+                                            {peakHoursData.map((_, index) => (
+                                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </Grid>
 
-                {/* Bar Chart - Average Session Duration */}
-                <Box sx={{ width: '45%', my: 2 }}>
-                    <Typography variant="h6" color="#000" mb={1}>Average Minute Per Session</Typography>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={averageSessionData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Bar dataKey="duration" fill={COLORS[0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </Box>
+                    {/* Active vs Inactive */}
+                    <Grid item xs={12} md={6}>
+                        <Card sx={{ 
+                            borderRadius: '16px',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                            height: '100%'
+                        }}>
+                            <CardContent sx={{ p: 4 }}>
+                                <Typography 
+                                    variant="h6" 
+                                    sx={{ 
+                                        fontWeight: 600,
+                                        color: COLORS.darkGray,
+                                        mb: 3
+                                    }}
+                                >
+                                    Current Status
+                                </Typography>
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <PieChart>
+                                        <Pie 
+                                            data={activeInactiveData} 
+                                            dataKey="value" 
+                                            nameKey="name" 
+                                            cx="50%" 
+                                            cy="50%" 
+                                            outerRadius={80}
+                                            innerRadius={40}
+                                            paddingAngle={5}
+                                        >
+                                            {activeInactiveData.map((_, index) => (
+                                                <Cell 
+                                                    key={`cell-${index}`} 
+                                                    fill={index === 0 ? COLORS.success : COLORS.gray} 
+                                                />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Legend 
+                                            wrapperStyle={{ 
+                                                fontSize: '14px',
+                                                fontWeight: 500
+                                            }}
+                                        />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </Grid>
 
+                    {/* Top Members */}
+                    <Grid item xs={12} md={6}>
+                        <Card sx={{ 
+                            borderRadius: '16px',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                            height: '100%'
+                        }}>
+                            <CardContent sx={{ p: 4 }}>
+                                <Typography 
+                                    variant="h6" 
+                                    sx={{ 
+                                        fontWeight: 600,
+                                        color: COLORS.darkGray,
+                                        mb: 3
+                                    }}
+                                >
+                                    Top Active Members
+                                </Typography>
+                                <ResponsiveContainer width="100%" height={280}>
+                                    <BarChart data={userFrequencyData} layout="horizontal" margin={{ top: 20, right: 30, left: 40, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} opacity={0.3} />
+                                        <XAxis 
+                                            type="number"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 12, fill: COLORS.gray }}
+                                        />
+                                        <YAxis 
+                                            type="category"
+                                            dataKey="name" 
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fontSize: 11, fill: COLORS.gray }}
+                                            width={60}
+                                        />
+                                        <Tooltip content={<CustomTooltip />} />
+                                        <Bar dataKey="count" radius={[0, 4, 4, 0]} fill={COLORS.secondary} />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </Grid>
 
-                {/* Pie Chart - Active vs. Inactive Users */}
-                <Box sx={{ width: '45%', my: 2 }}>
-                    <Typography variant="h6" color="#000" mb={1}>Active Users Inside Gym</Typography>
-                    <ResponsiveContainer width="100%" height={400}>
-                        <PieChart>
-                            <Pie data={activeInactiveData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
-                                {activeInactiveData.map((_, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Pie>
-                            <Tooltip />
-                            <Legend />
-                        </PieChart>
-                    </ResponsiveContainer>
-                </Box>
-            </Box>
-        </Container>
+                    {/* Average Session */}
+                    <Grid item xs={12} md={6}>
+                        <Card sx={{ 
+                            borderRadius: '16px',
+                            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                            height: '100%'
+                        }}>
+                            <CardContent sx={{ p: 4, textAlign: 'center' }}>
+                                <Typography 
+                                    variant="h6" 
+                                    sx={{ 
+                                        fontWeight: 600,
+                                        color: COLORS.darkGray,
+                                        mb: 2
+                                    }}
+                                >
+                                    Average Session Duration
+                                </Typography>
+                                <Box sx={{ 
+                                    display: 'flex', 
+                                    flexDirection: 'column', 
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    height: 200
+                                }}>
+                                    <Typography 
+                                        variant="h2" 
+                                        sx={{ 
+                                            fontWeight: 700,
+                                            color: COLORS.primary,
+                                            mb: 1,
+                                            letterSpacing: '-0.02em'
+                                        }}
+                                    >
+                                        {averageSessionData[0]?.duration || 0}
+                                    </Typography>
+                                    <Typography 
+                                        variant="h6" 
+                                        sx={{ 
+                                            color: COLORS.gray,
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        minutes
+                                    </Typography>
+                                    <Box sx={{ 
+                                        width: 60, 
+                                        height: 4, 
+                                        backgroundColor: COLORS.primary,
+                                        borderRadius: 2,
+                                        mt: 2
+                                    }} />
+                                </Box>
+                            </CardContent>
+                        </Card>
+                    </Grid>
+                </Grid>
+            </Container>
+        </Box>
     );
 };
 
