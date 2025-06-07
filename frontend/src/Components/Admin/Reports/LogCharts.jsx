@@ -198,7 +198,7 @@ const LogCharts = () => {
                             mb: 3
                         }}
                     >
-                        Real-time insights into gym activity and member engagement
+                        Insights into gym activity and member engagement
                     </Typography>
                     
                     {/* Stats Overview */}
