@@ -400,24 +400,27 @@ const LogCharts = () => {
                                     Top Active Members
                                 </Typography>
                                 <ResponsiveContainer width="100%" height={280}>
-                                    <BarChart data={userFrequencyData} layout="horizontal" margin={{ top: 20, right: 30, left: 40, bottom: 20 }}>
+                                    <BarChart data={userFrequencyData} layout="vertical" margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} opacity={0.3} />
-                                        <XAxis 
+                                        <XAxis
                                             type="number"
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fontSize: 12, fill: COLORS.gray }}
                                         />
-                                        <YAxis 
+                                        <YAxis
                                             type="category"
-                                            dataKey="name" 
+                                            dataKey="name"
                                             axisLine={false}
                                             tickLine={false}
-                                            tick={{ fontSize: 11, fill: COLORS.gray }}
-                                            width={60}
+                                            tick={{ fontSize: 12, fill: COLORS.gray }}
                                         />
                                         <Tooltip content={<CustomTooltip />} />
-                                        <Bar dataKey="count" radius={[0, 4, 4, 0]} fill={COLORS.secondary} />
+                                        <Bar dataKey="count" radius={[0, 4, 4, 0]} fill={COLORS.primary}>
+                                            {userFrequencyData.map((_, index) => (
+                                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                            ))}
+                                        </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
                             </CardContent>
