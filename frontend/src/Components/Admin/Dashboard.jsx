@@ -149,7 +149,6 @@ const Dashboard = () => {
     const [exercisesCount, setExercisesCount] = useState(0);
     const [trainersCount, setTrainersCount] = useState(0);
     const [tabValue, setTabValue] = useState(0);
-    const [isReportLoading, setIsReportLoading] = useState(false);
     const [expanded, setExpanded] = useState({
         charts: true,
         gym: true,
@@ -185,7 +184,7 @@ const Dashboard = () => {
         fetchAdminData();
     }, []);
 
-    const renderStatCard = (title, value, icon, accentColor, link) => (
+    const renderStatCard = (title, value, icon, accentColor, link, loading) => (
         <Grid item xs={12} sm={6} md={3}>
             <StatCard>
                 <StatCardContent>
@@ -196,9 +195,15 @@ const Dashboard = () => {
                         {React.cloneElement(icon, { sx: { fontSize: 32, color: accentColor } })}
                     </Box>
                     <Divider sx={{ mb: 2 }} />
-                    <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>
-                        {value}
-                    </Typography>
+                    <Box display="flex" justifyContent="center" alignItems="center" minHeight="56px">
+                        {loading ? (
+                            <CircularProgress size={28} sx={{ color: '#007aff' }} />
+                        ) : (
+                            <Typography variant="h3" align="center" sx={{ fontWeight: 700 }}>
+                                {value}
+                            </Typography>
+                        )}
+                    </Box>
                 </StatCardContent>
                 {link && (
                     <StatCardButton component={Link} to={link}>
@@ -209,14 +214,9 @@ const Dashboard = () => {
         </Grid>
     );
 
+
     const handleTabChange = (_, newValue) => {
         setTabValue(newValue);
-    };
-
-    const handleRefreshReports = async () => {
-        setIsReportLoading(true);
-        await new Promise((r) => setTimeout(r, 1000));
-        setIsReportLoading(false);
     };
 
     const handleExpand = (section) => {
@@ -235,36 +235,17 @@ const Dashboard = () => {
     return (
         <PageContainer>
             <Container maxWidth="xl">
-                {loading ? (
-                    <Box display="flex" justifyContent="center" alignItems="center" sx={{ height: '30vh' }}>
-                        <CircularProgress sx={{ color: '#007aff' }} />
-                    </Box>
-                ) : (
-                    <Grid container spacing={3} sx={{ mb: 5 }}>
-                        {renderStatCard('Users', allUsers.length, <Group />, '#007aff', '/admin/users')}
-                        {renderStatCard('Branches', branchesCount, <Store />, '#ff9500', '/admin/branches')}
-                        {renderStatCard('Exercises', exercisesCount, <FitnessCenter />, '#34c759', '/admin/exercises')}
-                        {renderStatCard('Trainers', trainersCount, <Person />, '#5856d6', '/admin/trainers')}
-                    </Grid>
-                )}
-        
+                <Grid container spacing={3} sx={{ mb: 5 }}>
+                    {renderStatCard('Users', allUsers.length, <Group />, '#007aff', '/admin/users', loading)}
+                    {renderStatCard('Branches', branchesCount, <Store />, '#ff9500', '/admin/branches', loading)}
+                    {renderStatCard('Exercises', exercisesCount, <FitnessCenter />, '#34c759', '/admin/exercises', loading)}
+                    {renderStatCard('Trainers', trainersCount, <Person />, '#5856d6', '/admin/trainers', loading)}
+                </Grid>
+
                 <ReportsHeader>
                     <Typography variant="h4" sx={{ fontWeight: 600, color: '#1d1d1f' }}>
                         Reports
                     </Typography>
-                    <IconButton
-                        onClick={handleRefreshReports}
-                        disabled={isReportLoading}
-                        sx={{
-                            position: 'absolute',
-                            right: 16,
-                            top: 16,
-                            color: '#007aff',
-                            '&:hover': { background: 'rgba(0, 122, 255, 0.08)' },
-                        }}
-                    >
-                        {isReportLoading ? <CircularProgress size={24} color="inherit" /> : <RefreshIcon />}
-                    </IconButton>
                 </ReportsHeader>
 
                 <ReportsTabsContainer>

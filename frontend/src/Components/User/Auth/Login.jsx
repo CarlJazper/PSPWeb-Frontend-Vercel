@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Box, Typography, TextField, Button, Grid, Paper, Link as MUILink, Container } from '@mui/material';
+import { Box, Typography, TextField, Button, Grid, Paper, Link as MUILink, Container, IconButton } from '@mui/material';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
 import axios from 'axios';
@@ -12,16 +12,15 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import { IconButton } from '@mui/material';
-import { useState } from 'react';
 import baseURL from "../../../utils/baseURL";
 
 const Login = () => {
     const navigate = useNavigate();
-    const [showPassword, setShowPassword] = useState(false);
-
     const location = useLocation();
     const redirect = location.search ? new URLSearchParams(location.search).get('redirect') : '';
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
 
     const validationSchema = Yup.object({
         email: Yup.string().email('Invalid email address').required('Email is required'),
@@ -41,6 +40,7 @@ const Login = () => {
 
     const login = async (data) => {
         const { email, password } = data;
+        setLoading(true);
         try {
             const config = {
                 headers: {
@@ -50,9 +50,15 @@ const Login = () => {
             const response = await axios.post(`${baseURL}/users/login`, { email, password }, config);
             authenticate(response.data, (redirectPath) => navigate(redirect || redirectPath || '/'));
         } catch (error) {
-            toast.error('Invalid user or password', {
+            // Try to get backend error message if available, else generic
+            const message =
+                error.response?.data?.message ||
+                'Invalid user or password';
+            toast.error(message, {
                 position: 'bottom-right',
             });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -176,11 +182,15 @@ const Login = () => {
                                                         InputProps={{
                                                             startAdornment: <LockOutlinedIcon sx={{ mr: 1, color: 'rgba(255,255,255,0.7)' }} />,
                                                             endAdornment: (
-                                                                <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                                                                <IconButton
+                                                                    onClick={() => setShowPassword(!showPassword)}
+                                                                    edge="end"
+                                                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                                                >
                                                                     {showPassword ? (
-                                                                        <VisibilityOff sx={{ color: 'rgba(255,255,255,0.7)' }} /> // Change color here
+                                                                        <VisibilityOff sx={{ color: 'rgba(255,255,255,0.7)' }} />
                                                                     ) : (
-                                                                        <Visibility sx={{ color: 'rgba(255,255,255,0.7)' }} /> // Change color here
+                                                                        <Visibility sx={{ color: 'rgba(255,255,255,0.7)' }} />
                                                                     )}
                                                                 </IconButton>
                                                             ),
@@ -204,7 +214,6 @@ const Login = () => {
                                                     />
                                                 )}
                                             />
-
                                         </Box>
 
                                         <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
@@ -224,6 +233,7 @@ const Login = () => {
                                             <Button
                                                 type="submit"
                                                 fullWidth
+                                                disabled={loading}
                                                 sx={{
                                                     background: 'linear-gradient(45deg, #FF6B6B, #FF8E53)',
                                                     color: '#fff',
@@ -237,7 +247,7 @@ const Login = () => {
                                                     },
                                                 }}
                                             >
-                                                Sign In
+                                                {loading ? 'Signing In...' : 'Sign In'}
                                             </Button>
                                         </motion.div>
 
