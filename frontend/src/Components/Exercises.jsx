@@ -136,9 +136,6 @@ const Exercise = () => {
           <FitnessCenterIcon sx={{ mr: 2, fontSize: 40, color: "#fff" }} />
           Exercise Library
         </Typography>
-        <Typography variant="h6" color="#fff" sx={{ maxWidth: 800, mx: "auto" }}>
-          Explore our comprehensive collection of exercises designed to help you achieve your fitness goals
-        </Typography>
       </Box>
 
       {/* Loading State */}
