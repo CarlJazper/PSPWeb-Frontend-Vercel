@@ -1,6 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { AppBar, Toolbar, Button, Menu, MenuItem, Typography, IconButton, Avatar, Box } from '@mui/material';
+import {
+    AppBar,
+    Toolbar,
+    Button,
+    Menu,
+    MenuItem,
+    Typography,
+    IconButton,
+    Avatar,
+    Box,
+    Drawer,
+    List,
+    ListItem,
+    ListItemText,
+    useMediaQuery
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import { useTheme } from '@mui/material/styles';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getUser, logout } from '../../utils/helpers';
@@ -8,15 +25,15 @@ import { getUser, logout } from '../../utils/helpers';
 const Header = () => {
     const [user, setUser] = useState(getUser());
     const [anchorEl, setAnchorEl] = useState(null);
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [showQR, setShowQR] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
-    const [showQR, setShowQR] = useState(false);
-
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setUser(getUser());
-        }, 1000);
+        const interval = setInterval(() => setUser(getUser()), 1000);
         return () => clearInterval(interval);
     }, []);
 
@@ -25,140 +42,193 @@ const Header = () => {
         toast.success('Logged out', { position: 'bottom-right' });
     };
 
-    const handleMenuClick = (event) => {
-        setAnchorEl(event.currentTarget);
-    };
+    const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
+    const handleMenuClose = () => setAnchorEl(null);
 
-    const handleMenuClose = () => {
-        setAnchorEl(null);
-    };
-
-    // Check if link is active
     const isActive = (path) => location.pathname === path;
 
-    // Styles for nav links
     const navLinkStyle = {
         color: 'white',
-        fontSize: '1.2rem',
+        fontSize: '1.3rem',
         textTransform: 'none',
         '&:hover': { color: 'yellow', opacity: 0.7 },
     };
 
-    // Define nav links based on user role
-    const navLinks = user?.role === 'admin'
-        ? [
-            { name: 'Dashboard', path: '/admin/dashboard' },
-            // { name: 'Reports', path: '/admin/reports' },
-            // { name: 'Streams', path: '/admin/streams' },
-        ]
-        : [
-            { name: 'Home', path: '/' },
-            { name: user ? 'Classes' : 'Services', path: user ? '/classes' : '/services' },
-            { name: 'Coaches', path: '/coaches' },
-            { name: 'Memberships', path: '/memberships' },
-            { name: 'Exercises', path: '/exercises' },
-            { name: 'Map', path: '/map' },
-        ];
+    const navLinks =
+        user?.role === 'admin'
+            ? [{ name: 'Dashboard', path: '/admin/dashboard' }]
+            : [
+                { name: 'Home', path: '/' },
+                { name: user ? 'Classes' : 'Services', path: user ? '/classes' : '/services' },
+                { name: 'Coaches', path: '/coaches' },
+                { name: 'Memberships', path: '/memberships' },
+                { name: 'Exercises', path: '/exercises' },
+                { name: 'Map', path: '/map' },
+            ];
+
+    const drawerContent = (
+        <Box sx={{ width: 250 }} role="presentation" onClick={() => setMobileOpen(false)}>
+            <List>
+                {navLinks.map((link) => (
+                    <ListItem key={link.path} component={Link} to={link.path} button>
+                        <ListItemText
+                            primary={link.name}
+                            primaryTypographyProps={{ fontWeight: isActive(link.path) ? 'bold' : 'normal' }}
+                        />
+                    </ListItem>
+                ))}
+                {user ? (
+                    <>
+                        <ListItem component={Link} to="/me" button>
+                            <ListItemText primary="Profile" />
+                        </ListItem>
+                        <ListItem button onClick={() => setShowQR(true)}>
+                            <ListItemText primary="QR Code" />
+                        </ListItem>
+                        <ListItem button onClick={logoutHandler}>
+                            <ListItemText primary={<Typography color="error">Logout</Typography>} />
+                        </ListItem>
+                    </>
+                ) : (
+                    <ListItem component={Link} to="/login" button>
+                        <ListItemText primary="Login" />
+                    </ListItem>
+                )}
+            </List>
+        </Box>
+    );
 
     return (
-        <AppBar position="static" sx={{ backgroundColor: 'transparent', boxShadow: 'none', pt: 1 }}>
-            <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                
-                {/* Circular Logo */}
-                <Box sx={{ width: 60, height: 60, borderRadius: '50%', overflow: 'hidden' }}>
-                <Link to={user?.role === 'admin' ? "admin/dashboard" : "/"}>
-                        <img 
-                            src={`/images/psp-logo.png`} 
-                            alt="Logo" 
-                            width="100%" 
-                            height="100%" 
-                            style={{ objectFit: 'cover' }} 
-                        />
-                    </Link>
-                </Box>
+        <>
+            <AppBar position="static" sx={{ backgroundColor: 'transparent', boxShadow: 'none', pt: 1 }}>
+                <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{ width: 60, height: 60, borderRadius: '50%', overflow: 'hidden' }}>
+                        <Link to={user?.role === 'admin' ? '/admin/dashboard' : '/'}>
+                            <img
+                                src="/images/psp-logo.png"
+                                alt="Logo"
+                                width="100%"
+                                height="100%"
+                                style={{ objectFit: 'cover' }}
+                            />
+                        </Link>
+                    </Box>
 
-                {/* Navigation Links (Center) */}
-                <Box sx={{ display: 'flex', gap: 3 }}>
-                    {navLinks.map((link) => (
-                        <Button 
-                            key={link.path}
-                            component={Link} 
-                            to={link.path} 
-                            sx={{ 
-                                ...navLinkStyle,
-                                borderBottom: isActive(link.path) ? '2px solid white' : 'none' 
-                            }}
-                        >
-                            {link.name}
-                        </Button>
-                    ))}
-                </Box>
-
-                {/* Login/Profile menu*/}
-                <Box>
-                    {user ? (
-                        <>
-                            <IconButton onClick={handleMenuClick}>
-                                <Avatar alt={user.name} src={user?.image[0]?.url} />
-                            </IconButton>
-
-                            <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-                                <MenuItem onClick={handleMenuClose}>
-                                    <Link to="/me">Profile</Link>
-                                </MenuItem>
-                                <MenuItem onClick={() => { setShowQR(true); handleMenuClose(); }}>
-                                    QR Code
-                                </MenuItem>
-                                <MenuItem onClick={logoutHandler}>
-                                    <Typography color="error">Logout</Typography>
-                                </MenuItem>
-                            </Menu>
-                            {showQR && (
-                                <Box
-                                    onClick={() => setShowQR(false)}
+                    {!isMobile && (
+                        <Box sx={{ display: 'flex', gap: 3 }}>
+                            {navLinks.map((link) => (
+                                <Button
+                                    key={link.path}
+                                    component={Link}
+                                    to={link.path}
                                     sx={{
-                                        position: 'fixed',
-                                        top: 0,
-                                        left: 0,
-                                        width: '100vw',
-                                        height: '100vh',
-                                        bgcolor: 'rgba(0, 0, 0, 0.8)',
-                                        zIndex: 1300,
-                                        display: 'flex',
-                                        justifyContent: 'center',
-                                        alignItems: 'center',
-                                        cursor: 'pointer',
+                                        ...navLinkStyle,
+                                        borderBottom: isActive(link.path) ? '2px solid white' : 'none',
                                     }}
                                 >
-                                    <Box
-                                        component="img"
-                                        src="/images/qr.png"
-                                        alt="QR Code"
-                                        sx={{
-                                            width: { xs: '200px', md: '300px' },
-                                            height: 'auto',
-                                            borderRadius: 2,
-                                            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
-                                            transition: 'transform 0.3s ease-in-out',
-                                            '&:hover': {
-                                                transform: 'scale(1.05)',
-                                            },
+                                    {link.name}
+                                </Button>
+                            ))}
+                        </Box>
+                    )}
+
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {!isMobile && user && (
+                            <>
+                                <IconButton onClick={handleMenuClick}>
+                                    <Avatar alt={user.name} src={user?.image?.[0]?.url} />
+                                </IconButton>
+                                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+                                    <MenuItem onClick={handleMenuClose} component={Link} to="/me">
+                                        Profile
+                                    </MenuItem>
+                                    <MenuItem
+                                        onClick={() => {
+                                            setShowQR(true);
+                                            handleMenuClose();
                                         }}
-                                    />
-                                </Box>
-                            )}
-                        </>
-                    ) : (
-                        <Link to="/login">
-                            <Button variant="contained" sx={{ backgroundColor: '#1976d2', color: 'white' }}>
+                                    >
+                                        QR Code
+                                    </MenuItem>
+                                    <MenuItem onClick={logoutHandler}>
+                                        <Typography color="error">Logout</Typography>
+                                    </MenuItem>
+                                </Menu>
+                            </>
+                        )}
+                        {!isMobile && !user && (
+                            <Button
+                                variant="contained"
+                                component={Link}
+                                to="/login"
+                                sx={{
+                                    backgroundColor: '#C09721',
+                                    color: 'white',
+                                    borderRadius: '10px',
+                                    transition: 'all 0.3s ease',
+                                    '&:hover': {
+                                        backgroundColor: '#fff',
+                                        color: '#C09721',
+                                    },
+                                }}
+                            >
                                 Login
                             </Button>
-                        </Link>
-                    )}
-                </Box>
+                        )}
+                        {isMobile && (
+                            <IconButton
+                                edge="end"
+                                color="inherit"
+                                aria-label="menu"
+                                onClick={() => setMobileOpen(true)}
+                                sx={{ ml: 1 }}
+                            >
+                                <MenuIcon />
+                            </IconButton>
+                        )}
+                    </Box>
+                </Toolbar>
+            </AppBar>
 
-            </Toolbar>
-        </AppBar>
+            <Drawer anchor="right" open={mobileOpen} onClose={() => setMobileOpen(false)}>
+                {drawerContent}
+            </Drawer>
+
+            {showQR && (
+                <Box
+                    onClick={() => setShowQR(false)}
+                    sx={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100vw',
+                        height: '100vh',
+                        bgcolor: 'rgba(0, 0, 0, 0.8)',
+                        zIndex: 1300,
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        cursor: 'pointer',
+                    }}
+                >
+                    <Box
+                        component="img"
+                        src="/images/qr.png"
+                        alt="QR Code"
+                        sx={{
+                            width: { xs: '200px', md: '300px' },
+                            height: 'auto',
+                            borderRadius: 2,
+                            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+                            transition: 'transform 0.3s ease-in-out',
+                            '&:hover': {
+                                transform: 'scale(1.05)',
+                            },
+                        }}
+                    />
+                </Box>
+            )}
+        </>
     );
 };
 
