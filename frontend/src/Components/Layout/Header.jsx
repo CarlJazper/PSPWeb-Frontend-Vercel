@@ -73,7 +73,11 @@ const Header = () => {
                     <ListItem key={link.path} component={Link} to={link.path} button>
                         <ListItemText
                             primary={link.name}
-                            primaryTypographyProps={{ fontWeight: isActive(link.path) ? 'bold' : 'normal' }}
+                            primaryTypographyProps={{ 
+                                fontWeight: isActive(link.path) ? 'bold' : 'normal',
+                                color: isActive(link.path) ? '#C09721' : 'inherit'
+                            }}
+                            
                         />
                     </ListItem>
                 ))}

@@ -68,6 +68,7 @@ const BranchList = ({ refresh }) => {
       sx={{ 
         p: 3,
         mt: 4, 
+        mb: 4,
         borderRadius: 3,
         background: theme.palette.background.paper,
         boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)'

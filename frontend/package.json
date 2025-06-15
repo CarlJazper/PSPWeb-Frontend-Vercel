@@ -19,6 +19,7 @@
     "@hookform/resolvers": "^3.9.1",
     "@mui/icons-material": "^5.16.7",
     "@mui/material": "^5.16.7",
+    "@mui/x-data-grid": "^8.5.2",
     "@mui/x-date-pickers": "^8.4.0",
     "axios": "^1.7.7",
     "bad-words": "^4.0.0",

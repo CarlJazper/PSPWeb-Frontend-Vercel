@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Box } from '@mui/material';
 
 import './App.css';
 import { ToastContainer } from 'react-toastify';
@@ -56,69 +57,80 @@ function App() {
 
   return (
     <Router basename="/">
-      <Header />
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+        }}
+      >
+        <Header />
 
-      <Routes>
-        {/* ----------------- Guest Routes ----------------- */}
-        <Route path="/" element={<Home />} />
-        <Route path="/coaches" element={<Coaches />} />
-        <Route path="/services" element={<Services />} />
-        <Route path="/memberships" element={<Memberships />} />
-        <Route path="/map" element={<Map />} />
-        <Route path="/exercises" element={<Exercise />} />
+        {/* Main content area grows to push footer down */}
+        <Box component="main" sx={{ flexGrow: 1 }}>
+          <Routes>
+            {/* ----------------- Guest Routes ----------------- */}
+            <Route path="/" element={<Home />} />
+            <Route path="/coaches" element={<Coaches />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/memberships" element={<Memberships />} />
+            <Route path="/map" element={<Map />} />
+            <Route path="/exercises" element={<Exercise />} />
 
-        {/* ----------------- Auth Routes ----------------- */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/client/register" element={<Register />} />
+            {/* ----------------- Auth Routes ----------------- */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/client/register" element={<Register />} />
 
-        {/* ----------------- Public Password Reset ----------------- */}
-        <Route path="/password/forgot" element={<ForgotPassword />} />
-        <Route path="/password/reset/:token" element={<NewPassword />} />
+            {/* ----------------- Public Password Reset ----------------- */}
+            <Route path="/password/forgot" element={<ForgotPassword />} />
+            <Route path="/password/reset/:token" element={<NewPassword />} />
 
-        {/* ----------------- Protected Profile Routes ----------------- */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/me" element={<Profile />} />
-          <Route path="/me/update" element={<UpdateProfile />} />
-          <Route path="/password/update" element={<UpdatePassword />} />
-        </Route>
+            {/* ----------------- Protected Profile Routes ----------------- */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/me" element={<Profile />} />
+              <Route path="/me/update" element={<UpdateProfile />} />
+              <Route path="/password/update" element={<UpdatePassword />} />
+            </Route>
 
+            {/* ----------------- Protected Admin Routes ----------------- */}
+            <Route path="/admin" element={<ProtectedRoute isAdmin={true} />}>
+              {/* Dashboard */}
+              <Route path="dashboard" element={<Dashboard />} />
 
-        {/* ----------------- Protected Admin Routes ----------------- */}
-        <Route path="/admin" element={<ProtectedRoute isAdmin={true} />}>
-          {/* Dashboard */}
-          <Route path="dashboard" element={<Dashboard />} />
+              {/* User Management */}
+              <Route path="users" element={<UsersList />} />
+              <Route path="user/:id" element={<UpdateUser />} />
 
-          {/* User Management */}
-          <Route path="users" element={<UsersList />} />
-          <Route path="user/:id" element={<UpdateUser />} />
+              {/* Branch Management */}
+              <Route path="branches" element={<BranchList refresh={refresh} />} />
+              <Route path="create-branch" element={<CreateBranch onBranchCreated={toggleRefresh} />} />
+              <Route path="update-branch/:id" element={<UpdateBranch />} />
 
-          {/* Branch Management */}
-          <Route path="branches" element={<BranchList refresh={refresh} />} />
-          <Route path="create-branch" element={<CreateBranch onBranchCreated={toggleRefresh} />} />
-          <Route path="update-branch/:id" element={<UpdateBranch />} />
+              {/* Exercise Management */}
+              <Route path="exercises" element={<ExerciseList refresh={refresh} />} />
+              <Route path="create-exercises" element={<CreateExercise onExerciseCreated={toggleRefresh} />} />
+              <Route path="update-exercise/:id" element={<UpdateExercise />} />
 
-          {/* Exercise Management */}
-          <Route path="exercises" element={<ExerciseList refresh={refresh} />} />
-          <Route path="create-exercises" element={<CreateExercise onExerciseCreated={toggleRefresh} />} />
-          <Route path="update-exercise/:id" element={<UpdateExercise />} />
+              {/* Trainer Management */}
+              <Route path="trainers" element={<TrainerList refresh={refresh} />} />
+              <Route path="trainer-detail/:id" element={<TrainerDetail />} />
+              <Route path="create-trainer" element={<CreateTrainer onTrainerCreated={toggleRefresh} />} />
+              <Route path="update-trainer/:id" element={<UpdateTrainer />} />
 
-          {/* Trainer Management */}
-          <Route path="trainers" element={<TrainerList refresh={refresh} />} />
-          <Route path="trainer-detail/:id" element={<TrainerDetail />} />
-          <Route path="create-trainer" element={<CreateTrainer onTrainerCreated={toggleRefresh} />} />
-          <Route path="update-trainer/:id" element={<UpdateTrainer />} />
+              {/* Reports */}
+              <Route path="reports" element={<Reports />} />
+              <Route path="membership-sales" element={<MembershipSales />} />
+              <Route path="user-logs" element={<UserLogs refresh={refresh} />} />
+              <Route path="log-charts" element={<LogCharts />} />
+              <Route path="gym-monitoring" element={<GymMonitoring />} />
+              <Route path="training-sessions" element={<TrainingSession />} />
+            </Route>
+          </Routes>
+        </Box>
 
-          {/* Reports */}
-          <Route path="reports" element={<Reports />} />
-          <Route path="membership-sales" element={<MembershipSales />} />
-          <Route path="user-logs" element={<UserLogs refresh={refresh} />} />
-          <Route path="log-charts" element={<LogCharts />} />
-          <Route path="gym-monitoring" element={<GymMonitoring />} />
-          <Route path="training-sessions" element={<TrainingSession />} />
-        </Route>
-      </Routes>
+        <Footer />
+      </Box>
 
-      <Footer />
       <ToastContainer />
     </Router>
   );
