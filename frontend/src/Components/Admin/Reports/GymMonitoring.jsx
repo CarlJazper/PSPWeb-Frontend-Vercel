@@ -18,8 +18,10 @@ import {
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
 import baseURL from '../../../utils/baseURL';
+import { getUser } from '../../../utils/helpers';
 
 const GymMonitoring = () => {
+  const user = getUser();
   const [activeSessions, setActiveSessions] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,9 +29,12 @@ const GymMonitoring = () => {
 
   const fetchData = async () => {
     try {
+      const body = {
+        userBranch: user.userBranch
+      };
       const [logsRes, usersRes] = await Promise.all([
-        axios.get(`${baseURL}/logs/get-all-logs`),
-        axios.get(`${baseURL}/users/get-all-users`)
+        axios.post(`${baseURL}/logs/get-all-logs`, body),
+        axios.post(`${baseURL}/users/get-all-users`, body)
       ]);
 
       const active = logsRes.data.logs.filter(log => !log.timeOut);

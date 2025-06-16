@@ -34,7 +34,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-import { getToken } from '../../utils/helpers';
+import { getToken, getUser } from '../../utils/helpers';
 import baseURL from '../../utils/baseURL';
 
 import LogCharts from './Reports/LogCharts';
@@ -143,6 +143,7 @@ function TabPanel({ children, value, index }) {
 
 const Dashboard = () => {
     const theme = useTheme();
+    const user = getUser();
     const [loading, setLoading] = useState(true);
     const [allUsers, setAllUsers] = useState([]);
     const [branchesCount, setBranchesCount] = useState(0);
@@ -157,24 +158,31 @@ const Dashboard = () => {
         sessions: true,
         sessionsales: true,
     });
+    console.log(allUsers, 'User')
 
     const fetchAdminData = async () => {
         setLoading(true);
         try {
-            const config = { headers: { Authorization: `Bearer ${getToken()}` } };
-            const [usersRes, branchesRes, exercisesRes, trainersRes] = await Promise.all([
-                axios.get(`${baseURL}/users/get-all-users`, config),
-                axios.get(`${baseURL}/branch/get-all-branches`),
-                axios.get(`${baseURL}/exercises/get-all-exercise`),
-                axios.get(`${baseURL}/availTrainer/get-all-trainers`),
+            const config = {
+                headers: { Authorization: `Bearer ${getToken()}` }
+            };
+
+            const body = {
+                userBranch: user.userBranch
+            };
+            console.log(body,'Branch')
+            // ❌ GET cannot send body – change to POST if body is needed
+            const [usersRes, trainersRes, exercisesRes] = await Promise.all([
+                axios.post(`${baseURL}/users/get-all-users`, body, config),
+                axios.post(`${baseURL}/users/get-all-users?role=coach`, body, config),
+                axios.get(`${baseURL}/exercises/get-all-exercise`, config),
             ]);
 
             setAllUsers(usersRes.data.users);
-            setBranchesCount(branchesRes.data.branch.length);
-            setExercisesCount(exercisesRes.data.exercises.length);
-            setTrainersCount(trainersRes.data.length);
+            setExercisesCount(exercisesRes.data.exercises?.length || 0);
+            setTrainersCount(trainersRes.data.users?.length || 0);
         } catch (error) {
-            console.error('Error fetching admin data:', error);
+            console.error('Error fetching admin data:', error.response?.data || error.message);
         } finally {
             setLoading(false);
         }
@@ -231,13 +239,12 @@ const Dashboard = () => {
         { id: 'sessions', title: 'Training Sessions', icon: <SessionIcon />, component: <TrainingSessions />, color: '#ff3b30' },
         { id: 'sessionsales', title: 'Session Sales', icon: <SessionSaleIcon />, component: <SessionSales />, color: '#af52de' },
     ];
-
+    
     return (
         <PageContainer>
             <Container maxWidth="xl">
-                <Grid container spacing={3} sx={{ mb: 5 }}>
+                <Grid container spacing={3} sx={{ mb: 5 }} style={{ display: 'flex', justifyContent: 'space-between' }}>
                     {renderStatCard('Users', allUsers.length, <Group />, '#007aff', '/admin/users', loading)}
-                    {renderStatCard('Branches', branchesCount, <Store />, '#ff9500', '/admin/branches', loading)}
                     {renderStatCard('Exercises', exercisesCount, <FitnessCenter />, '#34c759', '/admin/exercises', loading)}
                     {renderStatCard('Trainers', trainersCount, <Person />, '#5856d6', '/admin/trainers', loading)}
                 </Grid>

@@ -50,8 +50,6 @@ const TrainerDetail = () => {
         { name: 'Remaining', value: 5 - averageRating },
     ];
 
-    console.log(trainer.image[0].url,'Trainer')
-
     return (
         <Box sx={{ maxWidth: 1000, margin: 'auto', padding: 3 }}>
             {/* Trainer Profile Section */}
@@ -59,7 +57,7 @@ const TrainerDetail = () => {
                 <Avatar
                     sx={{ width: 120, height: 120, marginRight: 3 }}
                     alt={trainer.name}
-                    src={trainer.image ? trainer.image[0].url : "https://via.placeholder.com/120"}
+                    src={trainer.image ? trainer.image[0]?.url : "https://via.placeholder.com/120"}
                 />
                 <Box>
                     <Typography variant="h4" sx={{ color: 'white' }}>

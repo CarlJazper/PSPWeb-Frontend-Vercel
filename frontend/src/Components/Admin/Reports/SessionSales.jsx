@@ -30,8 +30,11 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import baseURL from "../../../utils/baseURL";
+import { getUser } from "../../../utils/helpers";
 
 const TrainingSessions = () => {
+  const user = getUser();
+  const userBranch = user.userBranch || '';
   const [salesData, setSalesData] = useState(null);
   const [sessions, setSessions] = useState({ today: [], all: [], years: [] });
   const [selectedMonthYear, setSelectedMonthYear] = useState({
@@ -52,9 +55,10 @@ const TrainingSessions = () => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const salesRes = await axios.get(`${baseURL}/availTrainer/session-sales`);
-        const sessionsRes = await axios.get(`${baseURL}/availTrainer/get-all-trainers`);
+        const salesRes = await axios.post(`${baseURL}/availTrainer/session-sales`, { userBranch });
+        const sessionsRes = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
 
+        console.log(salesRes,'Sales')
         const allSessions = sessionsRes.data;
         const today = new Date().setHours(0, 0, 0, 0);
         const years = [...new Set(allSessions.map((s) => new Date(s.createdAt).getFullYear()))].sort((a, b) => b - a);

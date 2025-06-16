@@ -1,17 +1,20 @@
 import { useEffect, useState, useMemo } from "react";
-import {Container,Typography,Table,TableBody,TableCell,TableContainer,TableHead,TableRow,Paper,
-    CircularProgress,Avatar,Alert,TextField,Stack,Button,Box,Chip,InputAdornment,
+import {
+    Container, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper,
+    CircularProgress, Avatar, Alert, TextField, Stack, Button, Box, Chip, InputAdornment,
 } from "@mui/material";
-import {CalendarToday,FilterList,Person,Schedule,} from "@mui/icons-material";
+import { CalendarToday, FilterList, Person, Schedule, } from "@mui/icons-material";
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 import axios from "axios";
 import baseURL from "../../../utils/baseURL";
+import { getUser } from "../../../utils/helpers";
 
 const UserLogs = () => {
     const [logs, setLogs] = useState([]);
+    const user = getUser();
     const [filteredLogs, setFilteredLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -19,10 +22,12 @@ const UserLogs = () => {
     const [toDate, setToDate] = useState(null);
     const [pendingFrom, setPendingFrom] = useState(null);
     const [pendingTo, setPendingTo] = useState(null);
-
     useEffect(() => {
+        const body = {
+            userBranch: user.userBranch
+        };
         axios
-            .get(`${baseURL}/logs/get-all-logs`)
+            .post(`${baseURL}/logs/get-all-logs`, body)
             .then((res) => {
                 setLogs(res.data.logs);
                 setFilteredLogs(res.data.logs);
@@ -34,14 +39,18 @@ const UserLogs = () => {
     const applyFilter = () => {
         const from = pendingFrom ? new Date(pendingFrom).setHours(0, 0, 0, 0) : null;
         const to = pendingTo ? new Date(pendingTo).setHours(23, 59, 59, 999) : null;
+
         const filtered = logs.filter((log) => {
+            if (!log || !log.date) return false; // Skip invalid logs
             const logDate = new Date(log.date).getTime();
             return (!from || logDate >= from) && (!to || logDate <= to);
         });
+
         setFromDate(pendingFrom);
         setToDate(pendingTo);
         setFilteredLogs(filtered);
     };
+
 
     const clearFilter = () => {
         setPendingFrom(null);
@@ -90,7 +99,7 @@ const UserLogs = () => {
             );
         }
 
-        if (!filteredLogs.length) {
+        if (!logs.length) {
             return (
                 <Box sx={centerBoxStyle}>
                     <Schedule sx={{ fontSize: 48, color: "#C7C7CC", mb: 2 }} />

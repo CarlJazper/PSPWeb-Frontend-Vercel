@@ -1,17 +1,19 @@
 import React, { useEffect, useState, useCallback } from "react";
 import axios from "axios";
-import {Box,Card,CardContent,Typography,CircularProgress,Accordion,AccordionSummary,AccordionDetails,Button,Dialog,
-  DialogTitle,DialogContent,DialogActions,Select,MenuItem,Snackbar,Alert,Container,Chip,useTheme,alpha,
+import {
+  Box, Card, CardContent, Typography, CircularProgress, Accordion, AccordionSummary, AccordionDetails, Button, Dialog,
+  DialogTitle, DialogContent, DialogActions, Select, MenuItem, Snackbar, Alert, Container, Chip, useTheme, alpha,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PersonIcon from "@mui/icons-material/Person";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import FaceIcon from "@mui/icons-material/Face";
 import baseURL from "../../../utils/baseURL";
+import { getUser } from "../../../utils/helpers";
 
 const TrainingSessions = () => {
   const theme = useTheme();
-
+  const user = getUser();
   const [users, setUsers] = useState([]);
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,7 +21,7 @@ const TrainingSessions = () => {
   const [selectedCoach, setSelectedCoach] = useState("");
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-
+  const userBranch = user.userBranch || '';
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
   };
@@ -27,32 +29,42 @@ const TrainingSessions = () => {
   const fetchActiveUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const { data: trainings } = await axios.get(`${baseURL}/availTrainer/get-all-trainers`);
+      // Step 1: Fetch all availTrainer records (ideally filtered by branch)
+      const { data: trainings } = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
+
+      // Step 2: Check which users have active training
       const active = await Promise.all(
         trainings.map(async ({ userId, coachID, _id }) => {
           try {
-            const { data } = await axios.get(`${baseURL}/availTrainer/has-active/${userId._id}`);
-            return data.hasActive
+            const { data } = await axios.post(`${baseURL}/availTrainer/has-active`, { userBranch });
+            console.log(data, 'Data');
+
+            // Find the specific training entry for the current user
+            const entry = data.hasActive.find((item) => item.user._id === userId._id);
+
+            return entry
               ? {
-                  user: userId,
-                  coach: coachID,
-                  sessions: data.training.schedule || [],
-                  trainingId: _id,
-                }
+                user: entry.user,
+                coach: entry.coach,
+                sessions: entry.sessions || [],
+                trainingId: entry.trainingId,
+              }
               : null;
-          } catch {
+          } catch (err) {
+            console.warn("Error checking active training for user:", userId?._id, err);
             return null;
           }
         })
       );
-      setUsers(active.filter(Boolean));
+
+      setUsers(active.filter(Boolean)); // Only users with active training
     } catch (err) {
       console.error("Error fetching active users:", err);
       showSnackbar("Failed to load training sessions", "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userBranch]);
 
   const fetchCoaches = async () => {
     try {
@@ -252,8 +264,8 @@ const TrainingSessions = () => {
                                   s.status === "waiting"
                                     ? "Waiting for schedule"
                                     : s.status === "pending"
-                                    ? "Pending approval"
-                                    : "Not scheduled"
+                                      ? "Pending approval"
+                                      : "Not scheduled"
                                 }
                                 size="small"
                                 color="warning"

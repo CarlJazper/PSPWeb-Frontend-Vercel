@@ -22,8 +22,11 @@ import {
 import Visibility from '@mui/icons-material/Visibility';  // Correct import
 import { EditOutlined, DeleteOutline, PersonAdd, Person } from "@mui/icons-material";
 import baseURL from '../../../utils/baseURL'
+import { getUser } from "../../../utils/helpers";
 
 const TrainerList = () => {
+  const user = getUser();
+  const userBranch = user.userBranch || '';
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -32,7 +35,7 @@ const TrainerList = () => {
   useEffect(() => {
     const fetchTrainers = async () => {
       try {
-        const response = await axios.get(`${baseURL}/users/get-all-users?role=coach`);
+        const response = await axios.post(`${baseURL}/users/get-all-users?role=coach`, { userBranch });
         setTrainers(response.data.users);
       } catch (error) {
         console.error("Error fetching trainers:", error);
@@ -54,6 +57,8 @@ const TrainerList = () => {
       console.error("Error deleting trainer:", error);
     }
   };
+
+  console.log(trainers,'Trainers')
 
   return (
     <Paper
@@ -136,7 +141,7 @@ const TrainerList = () => {
                     <TableCell>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                         <Avatar
-                          src={trainer.avatar || ""}
+                          src={trainer.image[0]?.url || ""}
                           alt={trainer.name}
                           sx={{
                             width: 48,

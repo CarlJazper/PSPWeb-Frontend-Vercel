@@ -4,19 +4,21 @@ import axios from 'axios';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
 import baseURL from "../../../utils/baseURL";
+import { getUser } from '../../../utils/helpers';
 
 // Color palette
 const COLORS = {
-    primary: "#007AFF",secondary: "#5856D6", success: "#34C759",warning: "#FF9500",error: "#FF3B30",purple: "#AF52DE",
-    pink: "#FF2D92",indigo: "#5856D6",teal: "#5AC8FA",gray: "#8E8E93",lightGray: "#F2F2F7",darkGray: "#1C1C1E"
+    primary: "#007AFF", secondary: "#5856D6", success: "#34C759", warning: "#FF9500", error: "#FF3B30", purple: "#AF52DE",
+    pink: "#FF2D92", indigo: "#5856D6", teal: "#5AC8FA", gray: "#8E8E93", lightGray: "#F2F2F7", darkGray: "#1C1C1E"
 };
 
 const CHART_COLORS = [
-    COLORS.primary,COLORS.success, COLORS.warning,COLORS.purple,COLORS.pink,
-    COLORS.secondary,COLORS.teal,COLORS.error,COLORS.indigo
+    COLORS.primary, COLORS.success, COLORS.warning, COLORS.purple, COLORS.pink,
+    COLORS.secondary, COLORS.teal, COLORS.error, COLORS.indigo
 ];
 
 const LogCharts = () => {
+    const user = getUser();
     const [logs, setLogs] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -29,8 +31,11 @@ const LogCharts = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const logsResponse = await axios.get(`${baseURL}/logs/get-all-logs`);
-                const usersResponse = await axios.get(`${baseURL}/users/get-all-users`);
+                const body = {
+                    userBranch: user.userBranch
+                };
+                const logsResponse = await axios.post(`${baseURL}/logs/get-all-logs`, body);
+                const usersResponse = await axios.post(`${baseURL}/users/get-all-users`, {userBranch: user.userBranch});
 
                 setLogs(logsResponse.data.logs);
                 setUsers(usersResponse.data.users);
@@ -78,13 +83,13 @@ const LogCharts = () => {
             }, {});
 
             const topUsers = Object.entries(userFrequency)
-                .sort(([,a], [,b]) => b - a)
+                .sort(([, a], [, b]) => b - a)
                 .slice(0, 10)
                 .map(([userId, count]) => {
                     const user = users.find((u) => u._id === userId);
-                    return { 
-                        name: user ? user.name.split(' ')[0] : `User ${userId.slice(-4)}`, 
-                        count 
+                    return {
+                        name: user ? user.name.split(' ')[0] : `User ${userId.slice(-4)}`,
+                        count
                     };
                 });
 
@@ -129,9 +134,9 @@ const LogCharts = () => {
                         {label}
                     </Typography>
                     {payload.map((entry, index) => (
-                        <Typography 
-                            key={index} 
-                            variant="body2" 
+                        <Typography
+                            key={index}
+                            variant="body2"
                             sx={{ color: entry.color, fontWeight: 500 }}
                         >
                             {entry.name}: {entry.value}
@@ -145,14 +150,14 @@ const LogCharts = () => {
 
     if (loading) {
         return (
-            <Box sx={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
                 minHeight: '60vh',
                 backgroundColor: COLORS.lightGray,
                 borderRadius: '15px'
-             
+
             }}>
                 <CircularProgress size={40} sx={{ color: COLORS.primary }} />
             </Box>
@@ -170,8 +175,8 @@ const LogCharts = () => {
     }
 
     return (
-        <Box sx={{ 
-            backgroundColor: COLORS.lightGray, 
+        <Box sx={{
+            backgroundColor: COLORS.lightGray,
             borderRadius: '1%',
             minHeight: '100vh',
             py: 4
@@ -179,9 +184,9 @@ const LogCharts = () => {
             <Container maxWidth="xl">
                 {/* Header Section */}
                 <Box sx={{ textAlign: "center", mb: 6 }}>
-                    <Typography 
-                        variant="h3" 
-                        sx={{ 
+                    <Typography
+                        variant="h3"
+                        sx={{
                             fontWeight: 700,
                             color: COLORS.darkGray,
                             mb: 1,
@@ -190,9 +195,9 @@ const LogCharts = () => {
                     >
                         Analytics Dashboard
                     </Typography>
-                    <Typography 
-                        variant="h6" 
-                        sx={{ 
+                    <Typography
+                        variant="h6"
+                        sx={{
                             color: COLORS.gray,
                             fontWeight: 400,
                             mb: 3
@@ -200,12 +205,12 @@ const LogCharts = () => {
                     >
                         Insights into gym activity and member engagement
                     </Typography>
-                    
+
                     {/* Stats Overview */}
                     <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, flexWrap: 'wrap' }}>
-                        <Chip 
+                        <Chip
                             label={`${logs.length} Total Logs`}
-                            sx={{ 
+                            sx={{
                                 backgroundColor: COLORS.primary,
                                 color: 'white',
                                 fontWeight: 600,
@@ -213,9 +218,9 @@ const LogCharts = () => {
                                 py: 1
                             }}
                         />
-                        <Chip 
+                        <Chip
                             label={`${users.length} Members`}
-                            sx={{ 
+                            sx={{
                                 backgroundColor: COLORS.success,
                                 color: 'white',
                                 fontWeight: 600,
@@ -223,9 +228,9 @@ const LogCharts = () => {
                                 py: 1
                             }}
                         />
-                        <Chip 
+                        <Chip
                             label={`${activeInactiveData[0]?.value || 0} Currently Active`}
-                            sx={{ 
+                            sx={{
                                 backgroundColor: COLORS.warning,
                                 color: 'white',
                                 fontWeight: 600,
@@ -240,16 +245,16 @@ const LogCharts = () => {
                 <Grid container spacing={3}>
                     {/* Daily Activity - Full Width */}
                     <Grid item xs={12}>
-                        <Card sx={{ 
+                        <Card sx={{
                             borderRadius: '16px',
                             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
                             border: 'none',
                             overflow: 'hidden'
                         }}>
                             <CardContent sx={{ p: 4 }}>
-                                <Typography 
-                                    variant="h5" 
-                                    sx={{ 
+                                <Typography
+                                    variant="h5"
+                                    sx={{
                                         fontWeight: 600,
                                         color: COLORS.darkGray,
                                         mb: 3,
@@ -261,21 +266,21 @@ const LogCharts = () => {
                                 <ResponsiveContainer width="100%" height={320}>
                                     <LineChart data={dailyActivityData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} opacity={0.3} />
-                                        <XAxis 
-                                            dataKey="date" 
+                                        <XAxis
+                                            dataKey="date"
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fontSize: 12, fill: COLORS.gray }}
                                         />
-                                        <YAxis 
+                                        <YAxis
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fontSize: 12, fill: COLORS.gray }}
                                         />
                                         <Tooltip content={<CustomTooltip />} />
-                                        <Line 
-                                            type="monotone" 
-                                            dataKey="count" 
+                                        <Line
+                                            type="monotone"
+                                            dataKey="count"
                                             stroke={COLORS.primary}
                                             strokeWidth={3}
                                             dot={{ fill: COLORS.primary, strokeWidth: 2, r: 6 }}
@@ -289,15 +294,15 @@ const LogCharts = () => {
 
                     {/* Peak Hours */}
                     <Grid item xs={12} md={6}>
-                        <Card sx={{ 
+                        <Card sx={{
                             borderRadius: '16px',
                             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
                             height: '100%'
                         }}>
                             <CardContent sx={{ p: 4 }}>
-                                <Typography 
-                                    variant="h6" 
-                                    sx={{ 
+                                <Typography
+                                    variant="h6"
+                                    sx={{
                                         fontWeight: 600,
                                         color: COLORS.darkGray,
                                         mb: 3
@@ -308,13 +313,13 @@ const LogCharts = () => {
                                 <ResponsiveContainer width="100%" height={280}>
                                     <BarChart data={peakHoursData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                                         <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} opacity={0.3} />
-                                        <XAxis 
-                                            dataKey="hour" 
+                                        <XAxis
+                                            dataKey="hour"
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fontSize: 11, fill: COLORS.gray }}
                                         />
-                                        <YAxis 
+                                        <YAxis
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fontSize: 12, fill: COLORS.gray }}
@@ -333,15 +338,15 @@ const LogCharts = () => {
 
                     {/* Active vs Inactive */}
                     <Grid item xs={12} md={6}>
-                        <Card sx={{ 
+                        <Card sx={{
                             borderRadius: '16px',
                             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
                             height: '100%'
                         }}>
                             <CardContent sx={{ p: 4 }}>
-                                <Typography 
-                                    variant="h6" 
-                                    sx={{ 
+                                <Typography
+                                    variant="h6"
+                                    sx={{
                                         fontWeight: 600,
                                         color: COLORS.darkGray,
                                         mb: 3
@@ -351,26 +356,26 @@ const LogCharts = () => {
                                 </Typography>
                                 <ResponsiveContainer width="100%" height={280}>
                                     <PieChart>
-                                        <Pie 
-                                            data={activeInactiveData} 
-                                            dataKey="value" 
-                                            nameKey="name" 
-                                            cx="50%" 
-                                            cy="50%" 
+                                        <Pie
+                                            data={activeInactiveData}
+                                            dataKey="value"
+                                            nameKey="name"
+                                            cx="50%"
+                                            cy="50%"
                                             outerRadius={80}
                                             innerRadius={40}
                                             paddingAngle={5}
                                         >
                                             {activeInactiveData.map((_, index) => (
-                                                <Cell 
-                                                    key={`cell-${index}`} 
-                                                    fill={index === 0 ? COLORS.success : COLORS.gray} 
+                                                <Cell
+                                                    key={`cell-${index}`}
+                                                    fill={index === 0 ? COLORS.success : COLORS.gray}
                                                 />
                                             ))}
                                         </Pie>
                                         <Tooltip content={<CustomTooltip />} />
-                                        <Legend 
-                                            wrapperStyle={{ 
+                                        <Legend
+                                            wrapperStyle={{
                                                 fontSize: '14px',
                                                 fontWeight: 500
                                             }}
@@ -383,15 +388,15 @@ const LogCharts = () => {
 
                     {/* Top Members */}
                     <Grid item xs={12} md={6}>
-                        <Card sx={{ 
+                        <Card sx={{
                             borderRadius: '16px',
                             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
                             height: '100%'
                         }}>
                             <CardContent sx={{ p: 4 }}>
-                                <Typography 
-                                    variant="h6" 
-                                    sx={{ 
+                                <Typography
+                                    variant="h6"
+                                    sx={{
                                         fontWeight: 600,
                                         color: COLORS.darkGray,
                                         mb: 3
@@ -429,15 +434,15 @@ const LogCharts = () => {
 
                     {/* Average Session */}
                     <Grid item xs={12} md={6}>
-                        <Card sx={{ 
+                        <Card sx={{
                             borderRadius: '16px',
                             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
                             height: '100%'
                         }}>
                             <CardContent sx={{ p: 4, textAlign: 'center' }}>
-                                <Typography 
-                                    variant="h6" 
-                                    sx={{ 
+                                <Typography
+                                    variant="h6"
+                                    sx={{
                                         fontWeight: 600,
                                         color: COLORS.darkGray,
                                         mb: 2
@@ -445,16 +450,16 @@ const LogCharts = () => {
                                 >
                                     Average Session Duration
                                 </Typography>
-                                <Box sx={{ 
-                                    display: 'flex', 
-                                    flexDirection: 'column', 
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: 'column',
                                     alignItems: 'center',
                                     justifyContent: 'center',
                                     height: 200
                                 }}>
-                                    <Typography 
-                                        variant="h2" 
-                                        sx={{ 
+                                    <Typography
+                                        variant="h2"
+                                        sx={{
                                             fontWeight: 700,
                                             color: COLORS.primary,
                                             mb: 1,
@@ -463,18 +468,18 @@ const LogCharts = () => {
                                     >
                                         {averageSessionData[0]?.duration || 0}
                                     </Typography>
-                                    <Typography 
-                                        variant="h6" 
-                                        sx={{ 
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
                                             color: COLORS.gray,
                                             fontWeight: 500
                                         }}
                                     >
                                         minutes
                                     </Typography>
-                                    <Box sx={{ 
-                                        width: 60, 
-                                        height: 4, 
+                                    <Box sx={{
+                                        width: 60,
+                                        height: 4,
                                         backgroundColor: COLORS.primary,
                                         borderRadius: 2,
                                         mt: 2

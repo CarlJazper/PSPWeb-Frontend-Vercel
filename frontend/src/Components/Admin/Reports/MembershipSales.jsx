@@ -30,8 +30,10 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import baseURL from "../../../utils/baseURL";
+import { getUser } from "../../../utils/helpers";
 
 const MembershipSales = () => {
+  const user = getUser();
   const [salesData, setSalesData] = useState(null);
   const [transactions, setTransactions] = useState({ today: [], all: [], years: [] });
   const [selectedMonthYear, setSelectedMonthYear] = useState({
@@ -39,7 +41,7 @@ const MembershipSales = () => {
     month: new Date().getMonth() + 1,
   });
   const [selectedYearlyYear, setSelectedYearlyYear] = useState(new Date().getFullYear());
-  const [viewMode, setViewMode] = useState("chart"); // chart | today | monthly | yearly
+  const [viewMode, setViewMode] = useState("chart");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -55,12 +57,15 @@ const MembershipSales = () => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
+        const body = {
+          userBranch: user.userBranch
+        };
         const token = localStorage.getItem("token");
         const [salesRes, transRes] = await Promise.all([
-          axios.get(`${baseURL}/transaction/membership-sales-stats`, {
+          axios.post(`${baseURL}/transaction/membership-sales-stats`, body, {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          axios.get(`${baseURL}/transaction/get-all-transactions`, {
+          axios.post(`${baseURL}/transaction/get-all-transactions`, body, {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);

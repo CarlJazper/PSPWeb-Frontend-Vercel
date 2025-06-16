@@ -3,13 +3,15 @@ import { Link, useNavigate } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import axios from 'axios';
 import { FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
-import { getToken, errMsg, successMsg } from '../../../utils/helpers';
+import { getToken, errMsg, successMsg, getUser } from '../../../utils/helpers';
 import baseURL from "../../../utils/baseURL";
 import Loader from '../../Layout/Loader';
 import * as XLSX from 'xlsx';
 import { Box, Typography } from '@mui/material';
 
 const UsersList = () => {
+  const user = getUser();
+  const userBranch = user.userBranch || '';
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [allUsers, setAllUsers] = useState([]);
@@ -30,7 +32,7 @@ const UsersList = () => {
 
   const listUsers = async () => {
     try {
-      const { data } = await axios.get(`${baseURL}/users/get-all-users`, config);
+      const { data } = await axios.post(`${baseURL}/users/get-all-users`, { userBranch }, config);
 
       console.log(data.users)
       const nonAdminUsers = data.users.filter(user => user.role !== 'admin');
