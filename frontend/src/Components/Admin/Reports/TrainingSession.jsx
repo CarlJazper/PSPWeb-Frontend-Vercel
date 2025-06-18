@@ -3,13 +3,31 @@ import axios from "axios";
 import {
   Box, Card, CardContent, Typography, CircularProgress, Accordion, AccordionSummary, AccordionDetails, Button, Dialog,
   DialogTitle, DialogContent, DialogActions, Select, MenuItem, Snackbar, Alert, Container, Chip, useTheme, alpha,
+  Tooltip, IconButton
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PersonIcon from "@mui/icons-material/Person";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import FaceIcon from "@mui/icons-material/Face";
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import interactionPlugin from "@fullcalendar/interaction";
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
+
+// Utility to generate unique color per coach
+const stringToColor = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str?.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  let color = "#";
+  for (let i = 0; i < 3; i++) {
+    const value = (hash >> (i * 8)) & 0xff;
+    color += ("00" + value.toString(16)).slice(-2);
+  }
+  return color;
+};
 
 const TrainingSessions = () => {
   const theme = useTheme();
@@ -18,9 +36,11 @@ const TrainingSessions = () => {
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [openModal, setOpenModal] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [selectedCoach, setSelectedCoach] = useState("");
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
+
   const userBranch = user.userBranch || '';
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -29,17 +49,12 @@ const TrainingSessions = () => {
   const fetchActiveUsers = useCallback(async () => {
     setLoading(true);
     try {
-      // Step 1: Fetch all availTrainer records (ideally filtered by branch)
       const { data: trainings } = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
 
-      // Step 2: Check which users have active training
       const active = await Promise.all(
         trainings.map(async ({ userId, coachID, _id }) => {
           try {
             const { data } = await axios.post(`${baseURL}/availTrainer/has-active`, { userBranch });
-            console.log(data, 'Data');
-
-            // Find the specific training entry for the current user
             const entry = data.hasActive.find((item) => item.user._id === userId._id);
 
             return entry
@@ -57,7 +72,7 @@ const TrainingSessions = () => {
         })
       );
 
-      setUsers(active.filter(Boolean)); // Only users with active training
+      setUsers(active.filter(Boolean));
     } catch (err) {
       console.error("Error fetching active users:", err);
       showSnackbar("Failed to load training sessions", "error");
@@ -86,9 +101,7 @@ const TrainingSessions = () => {
     if (!selectedCoach || !selectedUserId) return;
     setLoading(true);
     try {
-      await axios.put(`${baseURL}/availTrainer/${selectedUserId}`, {
-        coachID: selectedCoach,
-      });
+      await axios.put(`${baseURL}/availTrainer/${selectedUserId}`, { coachID: selectedCoach });
       const coach = coaches.find((c) => c._id === selectedCoach);
       setUsers((prev) =>
         prev.map((u) =>
@@ -111,14 +124,7 @@ const TrainingSessions = () => {
 
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          minHeight: "80vh",
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "80vh" }}>
         <CircularProgress size={40} thickness={4} />
       </Box>
     );
@@ -126,9 +132,19 @@ const TrainingSessions = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" sx={{ fontWeight: 700, mb: 4 }}>
-        Active Training Sessions
-      </Typography>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+          Active Training Sessions
+        </Typography>
+        <Button
+          startIcon={<CalendarTodayIcon />}
+          variant="outlined"
+          onClick={() => setCalendarOpen(true)}
+          sx={{ borderRadius: 3, textTransform: "none" }}
+        >
+          View Schedules
+        </Button>
+      </Box>
 
       <Box sx={{ display: "grid", gap: 3 }}>
         {users.length > 0 ? (
@@ -195,14 +211,7 @@ const TrainingSessions = () => {
                 </Box>
 
                 {sessions.length > 0 && (
-                  <Accordion
-                    elevation={0}
-                    sx={{
-                      mt: 3,
-                      "&:before": { display: "none" },
-                      bgcolor: "transparent",
-                    }}
-                  >
+                  <Accordion elevation={0} sx={{ mt: 3, "&:before": { display: "none" }, bgcolor: "transparent" }}>
                     <AccordionSummary
                       expandIcon={<ExpandMoreIcon />}
                       sx={{
@@ -221,36 +230,14 @@ const TrainingSessions = () => {
                         </Typography>
                       </Box>
                     </AccordionSummary>
-                    <AccordionDetails
-                      sx={{
-                        bgcolor: alpha(theme.palette.primary.main, 0.02),
-                        borderBottomLeftRadius: 2,
-                        borderBottomRightRadius: 2,
-                      }}
-                    >
+                    <AccordionDetails sx={{ bgcolor: alpha(theme.palette.primary.main, 0.02), borderBottomLeftRadius: 2, borderBottomRightRadius: 2 }}>
                       {sessions.map((s, i) => (
-                        <Box
-                          key={i}
-                          sx={{
-                            p: 2,
-                            "&:not(:last-child)": {
-                              borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
-                            },
-                          }}
-                        >
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              color: theme.palette.text.secondary,
-                            }}
-                          >
+                        <Box key={i} sx={{ p: 2, "&:not(:last-child)": { borderBottom: `1px solid ${alpha(theme.palette.divider, 0.1)}` } }}>
+                          <Typography variant="body2" sx={{ display: "flex", alignItems: "center", color: theme.palette.text.secondary }}>
                             <Chip label={`Session ${i + 1}`} size="small" sx={{ mr: 1 }} />
                             {s.dateAssigned && s.timeAssigned ? (
                               <>
-                                {new Date(s.dateAssigned).toLocaleDateString()} at{" "}
-                                {new Date(s.timeAssigned).toLocaleTimeString()}
+                                {new Date(s.dateAssigned).toLocaleDateString()} at {new Date(s.timeAssigned).toLocaleTimeString()}
                                 <Chip
                                   label={s.status}
                                   size="small"
@@ -264,8 +251,8 @@ const TrainingSessions = () => {
                                   s.status === "waiting"
                                     ? "Waiting for schedule"
                                     : s.status === "pending"
-                                      ? "Pending approval"
-                                      : "Not scheduled"
+                                    ? "Pending approval"
+                                    : "Not scheduled"
                                 }
                                 size="small"
                                 color="warning"
@@ -281,14 +268,7 @@ const TrainingSessions = () => {
             </Card>
           ))
         ) : (
-          <Box
-            sx={{
-              textAlign: "center",
-              py: 8,
-              bgcolor: alpha(theme.palette.primary.main, 0.04),
-              borderRadius: 3,
-            }}
-          >
+          <Box sx={{ textAlign: "center", py: 8, bgcolor: alpha(theme.palette.primary.main, 0.04), borderRadius: 3 }}>
             <Typography variant="h6" sx={{ color: theme.palette.text.secondary }}>
               No active training sessions found
             </Typography>
@@ -317,9 +297,7 @@ const TrainingSessions = () => {
                   <FaceIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
                   <Box>
                     <Typography variant="subtitle2">{name}</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {email}
-                    </Typography>
+                    <Typography variant="caption" color="text.secondary">{email}</Typography>
                   </Box>
                 </Box>
               </MenuItem>
@@ -334,6 +312,46 @@ const TrainingSessions = () => {
             Assign Coach
           </Button>
         </DialogActions>
+      </Dialog>
+
+      {/* Calendar Modal */}
+      <Dialog open={calendarOpen} onClose={() => setCalendarOpen(false)} fullWidth maxWidth="lg" PaperProps={{ sx: { borderRadius: 3 } }}>
+        <DialogTitle>Coach Schedule Calendar</DialogTitle>
+        <DialogContent>
+          <FullCalendar
+            plugins={[dayGridPlugin, interactionPlugin]}
+            initialView="dayGridMonth"
+            height={600}
+            events={users.flatMap(({ user, coach, sessions }) =>
+              sessions
+                .filter((s) => s.dateAssigned && s.timeAssigned)
+                .map((s) => ({
+                  title: `${coach?.name} (${s.status})`,
+                  date: s.dateAssigned,
+                  backgroundColor: stringToColor(coach?.name),
+                  borderColor: stringToColor(coach?.name),
+                  extendedProps: {
+                    client: user?.name,
+                    time: new Date(s.timeAssigned).toLocaleTimeString(),
+                    status: s.status,
+                  },
+                }))
+            )}
+            eventContent={(arg) => (
+              <Tooltip
+                title={
+                  <>
+                    <div><strong>Client:</strong> {arg.event.extendedProps.client}</div>
+                    <div><strong>Time:</strong> {arg.event.extendedProps.time}</div>
+                    <div><strong>Status:</strong> {arg.event.extendedProps.status}</div>
+                  </>
+                }
+              >
+                <div>{arg.event.title}</div>
+              </Tooltip>
+            )}
+          />
+        </DialogContent>
       </Dialog>
 
       {/* Snackbar */}
