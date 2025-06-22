@@ -50,6 +50,7 @@ import Header from './Components/Layout/Header';
 import Footer from './Components/Layout/Footer';
 import Exercise from './Components/Exercises';
 import ProtectedRoute from './utils/ProtectedRoute';
+import SuperAdminDashboard from './Components/Admin/SuperAdminDashboard';
 
 function App() {
   const [refresh, setRefresh] = useState(false);
@@ -96,6 +97,7 @@ function App() {
             <Route path="/admin" element={<ProtectedRoute isAdmin={true} />}>
               {/* Dashboard */}
               <Route path="dashboard" element={<Dashboard />} />
+              <Route path="super-dashboard" element={<SuperAdminDashboard/>} />
 
               {/* User Management */}
               <Route path="users" element={<UsersList />} />

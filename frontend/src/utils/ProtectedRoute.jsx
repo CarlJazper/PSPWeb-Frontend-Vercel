@@ -5,7 +5,10 @@ const ProtectedRoute = ({ isAdmin = false }) => {
   const user = getUser();
 
   if (!user) return <Navigate to="/login" />;
-  if (isAdmin && user.role !== "admin") return <Navigate to="/" />;
+    // Only allow admins or superadmins if isAdmin is true
+  if (isAdmin && user.role !== "admin" && user.role !== "superadmin") {
+    return <Navigate to="/" />;
+  }
 
   return <Outlet />;
 };

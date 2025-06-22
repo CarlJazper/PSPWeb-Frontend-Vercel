@@ -25,9 +25,10 @@ import { GlobalStyles } from "@mui/material";
 
 import { getUser } from "../../../utils/helpers";
 
-const TrainingSessions = () => {
+const TrainingSessions = ({branchId}) => {
   const theme = useTheme();
   const user = getUser();
+  const userBranch = branchId || user.userBranch || '';
   const [users, setUsers] = useState([]);
   const [coaches, setCoaches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +36,6 @@ const TrainingSessions = () => {
   const [selectedCoach, setSelectedCoach] = useState("");
   const [selectedUserId, setSelectedUserId] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: "", severity: "success" });
-  const userBranch = user.userBranch || '';
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);

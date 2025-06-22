@@ -20,8 +20,9 @@ import { format, parseISO } from 'date-fns';
 import baseURL from '../../../utils/baseURL';
 import { getUser } from '../../../utils/helpers';
 
-const GymMonitoring = () => {
+const GymMonitoring = ({ branchId }) => {
   const user = getUser();
+  const branch = branchId || user.userBranch
   const [activeSessions, setActiveSessions] = useState([]);
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,16 +31,32 @@ const GymMonitoring = () => {
   const fetchData = async () => {
     try {
       const body = {
-        userBranch: user.userBranch
+        userBranch: branch
       };
+
+      // ✅ Fetch logs and users in parallel
       const [logsRes, usersRes] = await Promise.all([
         axios.post(`${baseURL}/logs/get-all-logs`, body),
         axios.post(`${baseURL}/users/get-all-users`, body)
       ]);
 
-      const active = logsRes.data.logs.filter(log => !log.timeOut);
+      // ✅ Filter logs where timeOut is not set (still active)
+      // First filter active logs
+      const rawActiveSessions = logsRes.data.logs.filter(log => !log.timeOut);
+
+      // Then filter users
+      const allUsers = usersRes.data.users;
+      const filteredUsers = allUsers.filter(user => !user.isDeleted);
+
+      // Filter out logs for deleted users
+      const active = rawActiveSessions.filter(session =>
+        filteredUsers.some(user => user._id === session.userId._id)
+      );
+
+
+      // ✅ Set state
       setActiveSessions(active);
-      setUsers(usersRes.data.users);
+      setUsers(filteredUsers);
       setError(null);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -49,11 +66,12 @@ const GymMonitoring = () => {
     }
   };
 
+
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [branch]);
 
   const activeUsers = useMemo(() => {
     const ids = new Set(activeSessions.map(s => s.userId._id));

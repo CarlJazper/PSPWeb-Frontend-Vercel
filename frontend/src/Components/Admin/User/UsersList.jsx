@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import DataTable from 'react-data-table-component';
 import axios from 'axios';
 import { FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
@@ -10,8 +10,11 @@ import * as XLSX from 'xlsx';
 import { Box, Typography } from '@mui/material';
 
 const UsersList = () => {
+  const location = useLocation();
+  const passedBranchId = location.state?.branchId;
   const user = getUser();
-  const userBranch = user.userBranch || '';
+  const userBranch = passedBranchId || user.userBranch || '';
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [allUsers, setAllUsers] = useState([]);

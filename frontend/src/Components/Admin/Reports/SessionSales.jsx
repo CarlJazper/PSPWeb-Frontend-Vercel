@@ -32,9 +32,9 @@ import {
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
 
-const TrainingSessions = () => {
+const TrainingSessions = ({branchId}) => {
   const user = getUser();
-  const userBranch = user.userBranch || '';
+  const userBranch = branchId || user.userBranch || '';
   const [salesData, setSalesData] = useState(null);
   const [sessions, setSessions] = useState({ today: [], all: [], years: [] });
   const [selectedMonthYear, setSelectedMonthYear] = useState({
@@ -78,7 +78,7 @@ const TrainingSessions = () => {
     };
 
     fetchSalesData();
-  }, []);
+  }, [userBranch]);
 
   const aggregateMonthly = (key) => {
     const monthly = Array.from({ length: 12 }, (_, i) => ({

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import {
   Table,
@@ -25,8 +25,10 @@ import baseURL from '../../../utils/baseURL'
 import { getUser } from "../../../utils/helpers";
 
 const TrainerList = () => {
+  const location = useLocation();
   const user = getUser();
-  const userBranch = user.userBranch || '';
+  const userBranch = location.state?.branchId || user.userBranch || '';
+
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -45,7 +47,7 @@ const TrainerList = () => {
     };
 
     fetchTrainers();
-  }, []);
+  }, [userBranch]);
 
   const handleDelete = async (trainerId) => {
     if (!window.confirm("Are you sure you want to delete this trainer?")) return;
@@ -58,7 +60,7 @@ const TrainerList = () => {
     }
   };
 
-  console.log(trainers,'Trainers')
+  console.log(trainers, 'Trainers')
 
   return (
     <Paper

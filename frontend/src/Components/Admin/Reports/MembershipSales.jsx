@@ -32,8 +32,9 @@ import {
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
 
-const MembershipSales = () => {
+const MembershipSales = ({ branchId }) => {
   const user = getUser();
+  const branch = branchId || user.userBranch
   const [salesData, setSalesData] = useState(null);
   const [transactions, setTransactions] = useState({ today: [], all: [], years: [] });
   const [selectedMonthYear, setSelectedMonthYear] = useState({
@@ -58,7 +59,7 @@ const MembershipSales = () => {
     const fetchSalesData = async () => {
       try {
         const body = {
-          userBranch: user.userBranch
+          userBranch: branch
         };
         const token = localStorage.getItem("token");
         const [salesRes, transRes] = await Promise.all([
@@ -91,7 +92,7 @@ const MembershipSales = () => {
     };
 
     fetchSalesData();
-  }, []);
+  }, [branch]);
 
   const aggregateMonthly = (key) => {
     const monthly = Array.from({ length: 12 }, (_, i) => ({
