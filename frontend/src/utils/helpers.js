@@ -7,11 +7,19 @@ export const authenticate = (data, next) => {
         sessionStorage.setItem('user', JSON.stringify(data.user));
     }
 
-    if (data.user && data.user.role === 'admin') {
-        next('/admin/dashboard'); // Redirect to the dashboard if the user is an admin
-    } else {
-        next(); // Default redirect if not admin
+   if (data.user) {
+        const { role } = data.user;
+
+        if (role === 'superadmin') {
+            return next('/admin/super-dashboard');  // 🚀 Redirect superadmin here
+        }
+
+        if (role === 'admin') {
+            return next('/admin/dashboard');  // ✅ Redirect admin here
+        }
     }
+
+    next(); // Default redirect if role doesn't match
 };
 
 export const getToken = () => {

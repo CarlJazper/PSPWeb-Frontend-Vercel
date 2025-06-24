@@ -32,9 +32,9 @@ import {
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
 
-const TrainingSessions = () => {
+const TrainingSessions = ({ branchId }) => {
   const user = getUser();
-  const userBranch = user.userBranch || '';
+  const userBranch = branchId || user.userBranch || '';
   const [salesData, setSalesData] = useState(null);
   const [sessions, setSessions] = useState({ today: [], all: [], years: [] });
   const [selectedMonthYear, setSelectedMonthYear] = useState({
@@ -55,10 +55,15 @@ const TrainingSessions = () => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const salesRes = await axios.post(`${baseURL}/availTrainer/session-sales`, { userBranch });
-        const sessionsRes = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
+        const body = user.role === 'superadmin'
+          ? (branchId ? { userBranch: branchId } : {}) // only include if explicitly passed
+          : { userBranch: user.userBranch };
 
-        console.log(salesRes,'Sales')
+        const salesRes = await axios.post(`${baseURL}/availTrainer/session-sales`, body);
+        const sessionsRes = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, body);
+
+
+        console.log(salesRes, 'Sales')
         const allSessions = sessionsRes.data;
         const today = new Date().setHours(0, 0, 0, 0);
         const years = [...new Set(allSessions.map((s) => new Date(s.createdAt).getFullYear()))].sort((a, b) => b - a);
@@ -78,7 +83,9 @@ const TrainingSessions = () => {
     };
 
     fetchSalesData();
-  }, []);
+    const interval = setInterval(fetchSalesData(), 2000);
+    return () => clearInterval(interval);
+  }, [userBranch]);
 
   const aggregateMonthly = (key) => {
     const monthly = Array.from({ length: 12 }, (_, i) => ({

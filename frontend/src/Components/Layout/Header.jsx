@@ -54,17 +54,25 @@ const Header = () => {
         '&:hover': { color: 'yellow', opacity: 0.7 },
     };
 
-    const navLinks =
-        user?.role === 'admin'
-            ? [{ name: 'Dashboard', path: '/admin/dashboard' }]
-            : [
-                { name: 'Home', path: '/' },
-                { name: user ? 'Classes' : 'Services', path: user ? '/classes' : '/services' },
-                { name: 'Coaches', path: '/coaches' },
-                { name: 'Memberships', path: '/memberships' },
-                { name: 'Exercises', path: '/exercises' },
-                { name: 'Map', path: '/map' },
-            ];
+    const navLinks = (() => {
+        if (user?.role === 'superadmin') {
+            return [{ name: 'Dashboard', path: '/admin/super-dashboard' }]; // Or use a separate path if needed
+        }
+
+        if (user?.role === 'admin') {
+            return [{ name: 'Dashboard', path: '/admin/dashboard' }];
+        }
+
+        return [
+            { name: 'Home', path: '/' },
+            { name: user ? 'Classes' : 'Services', path: user ? '/classes' : '/services' },
+            { name: 'Coaches', path: '/coaches' },
+            { name: 'Memberships', path: '/memberships' },
+            { name: 'Exercises', path: '/exercises' },
+            { name: 'Map', path: '/map' },
+        ];
+    })();
+
 
     const drawerContent = (
         <Box sx={{ width: 250 }} role="presentation" onClick={() => setMobileOpen(false)}>
@@ -73,11 +81,11 @@ const Header = () => {
                     <ListItem key={link.path} component={Link} to={link.path} button>
                         <ListItemText
                             primary={link.name}
-                            primaryTypographyProps={{ 
+                            primaryTypographyProps={{
                                 fontWeight: isActive(link.path) ? 'bold' : 'normal',
                                 color: isActive(link.path) ? '#C09721' : 'inherit'
                             }}
-                            
+
                         />
                     </ListItem>
                 ))}
@@ -107,7 +115,7 @@ const Header = () => {
             <AppBar position="static" sx={{ backgroundColor: 'transparent', boxShadow: 'none', pt: 1 }}>
                 <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box sx={{ width: 60, height: 60, borderRadius: '50%', overflow: 'hidden' }}>
-                        <Link to={user?.role === 'admin' ? '/admin/dashboard' : '/'}>
+                        <Link to={['admin', 'superadmin'].includes(user?.role) ? '/admin/dashboard' : '/'}>
                             <img
                                 src="/images/psp-logo.png"
                                 alt="Logo"

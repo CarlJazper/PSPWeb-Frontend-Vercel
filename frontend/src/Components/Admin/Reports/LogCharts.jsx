@@ -17,8 +17,10 @@ const CHART_COLORS = [
     COLORS.secondary, COLORS.teal, COLORS.error, COLORS.indigo
 ];
 
-const LogCharts = () => {
+const LogCharts = ({ branchId }) => {
     const user = getUser();
+    const branch = branchId || user.userBranch;
+
     const [logs, setLogs] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -31,15 +33,18 @@ const LogCharts = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const body = {
-                    userBranch: user.userBranch
-                };
+                const body = { userBranch: branch };
                 const logsResponse = await axios.post(`${baseURL}/logs/get-all-logs`, body);
-                const usersResponse = await axios.post(`${baseURL}/users/get-all-users`, {userBranch: user.userBranch});
+                const usersResponse = await axios.post(`${baseURL}/users/get-all-users`, body);
 
-                setLogs(logsResponse.data.logs);
-                setUsers(usersResponse.data.users);
+                const validUsers = usersResponse.data.users.filter(user => !user.isDeleted);
+                const validUserIds = new Set(validUsers.map(user => user._id));
+                const filteredLogs = logsResponse.data.logs.filter(log => validUserIds.has(log.userId?._id));
+
+                setUsers(validUsers);
+                setLogs(filteredLogs);
                 setLoading(false);
+
             } catch (error) {
                 console.error("Error fetching data:", error);
                 setLoading(false);
@@ -47,7 +52,10 @@ const LogCharts = () => {
         };
 
         fetchData();
-    }, []);
+        const interval = setInterval(fetchData(), 2000);
+        return () => clearInterval(interval);
+    }, [branch]); // ✅ Add branch to dependency list
+
 
     useEffect(() => {
         if (logs.length > 0 && users.length > 0) {

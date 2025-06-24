@@ -12,9 +12,10 @@ import axios from "axios";
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
 
-const UserLogs = () => {
+const UserLogs = ({ branchId }) => {
     const [logs, setLogs] = useState([]);
     const user = getUser();
+    const branch = branchId || user.userBranch;
     const [filteredLogs, setFilteredLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -22,19 +23,35 @@ const UserLogs = () => {
     const [toDate, setToDate] = useState(null);
     const [pendingFrom, setPendingFrom] = useState(null);
     const [pendingTo, setPendingTo] = useState(null);
+
     useEffect(() => {
-        const body = {
-            userBranch: user.userBranch
+        const fetchLogsAndUsers = async () => {
+            try {
+                const body = { userBranch: branch };
+                const [logsRes, usersRes] = await Promise.all([
+                    axios.post(`${baseURL}/logs/get-all-logs`, body),
+                    axios.post(`${baseURL}/users/get-all-users`, body),
+                ]);
+
+                const validUsers = usersRes.data.users.filter(user => !user.isDeleted);
+
+                const validUserIds = new Set(validUsers.map(user => user._id));
+                const validLogs = logsRes.data.logs.filter(log => validUserIds.has(log.userId?._id));
+
+                setLogs(validLogs);
+                setFilteredLogs(validLogs);
+            } catch (err) {
+                setError("Failed to load logs.");
+            } finally {
+                setLoading(false);
+            }
         };
-        axios
-            .post(`${baseURL}/logs/get-all-logs`, body)
-            .then((res) => {
-                setLogs(res.data.logs);
-                setFilteredLogs(res.data.logs);
-            })
-            .catch(() => setError("Failed to load logs."))
-            .finally(() => setLoading(false));
-    }, []);
+
+        fetchLogsAndUsers();
+        const interval = setInterval(fetchLogsAndUsers(), 2000);
+        return () => clearInterval(interval);
+    }, [branch]);
+
 
     const applyFilter = () => {
         const from = pendingFrom ? new Date(pendingFrom).setHours(0, 0, 0, 0) : null;

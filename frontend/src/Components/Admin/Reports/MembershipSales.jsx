@@ -32,8 +32,9 @@ import {
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
 
-const MembershipSales = () => {
+const MembershipSales = ({ branchId }) => {
   const user = getUser();
+  const branch = branchId || user.userBranch
   const [salesData, setSalesData] = useState(null);
   const [transactions, setTransactions] = useState({ today: [], all: [], years: [] });
   const [selectedMonthYear, setSelectedMonthYear] = useState({
@@ -57,9 +58,7 @@ const MembershipSales = () => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const body = {
-          userBranch: user.userBranch
-        };
+        const body = branch ? { userBranch: branch } : {}; // ❗important
         const token = localStorage.getItem("token");
         const [salesRes, transRes] = await Promise.all([
           axios.post(`${baseURL}/transaction/membership-sales-stats`, body, {
@@ -91,7 +90,9 @@ const MembershipSales = () => {
     };
 
     fetchSalesData();
-  }, []);
+    const interval = setInterval(fetchSalesData(), 2000);
+    return () => clearInterval(interval);
+  }, [branch]);
 
   const aggregateMonthly = (key) => {
     const monthly = Array.from({ length: 12 }, (_, i) => ({

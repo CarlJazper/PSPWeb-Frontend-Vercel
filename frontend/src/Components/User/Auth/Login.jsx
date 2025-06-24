@@ -12,7 +12,7 @@ import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
 import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import { Visibility, VisibilityOff } from '@mui/icons-material';
-import baseURL from "../../../utils/baseURL";
+import baseURL from '../../../utils/baseURL';
 
 const Login = () => {
     const navigate = useNavigate();
@@ -47,6 +47,8 @@ const Login = () => {
                     'Content-Type': 'application/json',
                 },
             };
+
+            // console.log(email, password ,'lol')
             const response = await axios.post(`${baseURL}/users/login`, { email, password }, config);
             authenticate(response.data, (redirectPath) => navigate(redirect || redirectPath || '/'));
         } catch (error) {
