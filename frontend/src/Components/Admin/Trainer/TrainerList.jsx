@@ -27,7 +27,7 @@ import { getUser } from "../../../utils/helpers";
 const TrainerList = () => {
   const location = useLocation();
   const user = getUser();
-  const userBranch = location.state?.branchId || user.userBranch || '';
+  const userBranch = user.role === 'superadmin' && !location.state?.branchId ? null: (location.state?.branchId || user.userBranch);
 
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +37,9 @@ const TrainerList = () => {
   useEffect(() => {
     const fetchTrainers = async () => {
       try {
-        const response = await axios.post(`${baseURL}/users/get-all-users?role=coach`, { userBranch });
+        const payload = userBranch ? { userBranch } : {};
+        const response = await axios.post(`${baseURL}/users/get-all-users?role=coach`, payload);
+
         setTrainers(response.data.users);
       } catch (error) {
         console.error("Error fetching trainers:", error);

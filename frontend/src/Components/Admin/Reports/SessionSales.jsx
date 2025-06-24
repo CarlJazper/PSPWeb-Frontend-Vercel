@@ -32,7 +32,7 @@ import {
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
 
-const TrainingSessions = ({branchId}) => {
+const TrainingSessions = ({ branchId }) => {
   const user = getUser();
   const userBranch = branchId || user.userBranch || '';
   const [salesData, setSalesData] = useState(null);
@@ -55,10 +55,15 @@ const TrainingSessions = ({branchId}) => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const salesRes = await axios.post(`${baseURL}/availTrainer/session-sales`, { userBranch });
-        const sessionsRes = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
+       const body = user.role === 'superadmin'
+  ? (branchId ? { userBranch: branchId } : {}) // only include if explicitly passed
+  : { userBranch: user.userBranch };
 
-        console.log(salesRes,'Sales')
+        const salesRes = await axios.post(`${baseURL}/availTrainer/session-sales`, body);
+        const sessionsRes = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, body);
+
+
+        console.log(salesRes, 'Sales')
         const allSessions = sessionsRes.data;
         const today = new Date().setHours(0, 0, 0, 0);
         const years = [...new Set(allSessions.map((s) => new Date(s.createdAt).getFullYear()))].sort((a, b) => b - a);

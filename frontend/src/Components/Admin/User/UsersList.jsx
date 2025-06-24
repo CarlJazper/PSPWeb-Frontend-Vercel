@@ -13,7 +13,8 @@ const UsersList = () => {
   const location = useLocation();
   const passedBranchId = location.state?.branchId;
   const user = getUser();
-  const userBranch = passedBranchId || user.userBranch || '';
+  const userBranch = user.role === 'superadmin' && !passedBranchId ? null : (passedBranchId || user.userBranch);
+
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,16 +36,18 @@ const UsersList = () => {
 
   const listUsers = async () => {
     try {
-      const { data } = await axios.post(`${baseURL}/users/get-all-users`, { userBranch }, config);
+      const payload = userBranch ? { userBranch } : {};
 
-      console.log(data.users)
+      const { data } = await axios.post(`${baseURL}/users/get-all-users?role=user`,payload,config);
+
       const nonAdminUsers = data.users.filter(user => user.role !== 'admin');
 
       setAllUsers(nonAdminUsers);
       setFilteredUsers(nonAdminUsers);
       setLoading(false);
     } catch (error) {
-      setError(error.response.data.message);
+      setError(error.response?.data?.message || "Error fetching users");
+      setLoading(false);
     }
   };
 

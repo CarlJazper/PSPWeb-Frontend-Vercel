@@ -58,9 +58,7 @@ const MembershipSales = ({ branchId }) => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const body = {
-          userBranch: branch
-        };
+        const body = branch ? { userBranch: branch } : {}; // ❗important
         const token = localStorage.getItem("token");
         const [salesRes, transRes] = await Promise.all([
           axios.post(`${baseURL}/transaction/membership-sales-stats`, body, {
