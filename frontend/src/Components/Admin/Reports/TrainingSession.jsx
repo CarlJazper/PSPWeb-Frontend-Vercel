@@ -29,17 +29,14 @@ const TrainingSessions = () => {
   const fetchActiveUsers = useCallback(async () => {
     setLoading(true);
     try {
-      // Step 1: Fetch all availTrainer records (ideally filtered by branch)
       const { data: trainings } = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
 
-      // Step 2: Check which users have active training
       const active = await Promise.all(
         trainings.map(async ({ userId, coachID, _id }) => {
           try {
             const { data } = await axios.post(`${baseURL}/availTrainer/has-active`, { userBranch });
             console.log(data, 'Data');
 
-            // Find the specific training entry for the current user
             const entry = data.hasActive.find((item) => item.user._id === userId._id);
 
             return entry
@@ -57,7 +54,7 @@ const TrainingSessions = () => {
         })
       );
 
-      setUsers(active.filter(Boolean)); // Only users with active training
+      setUsers(active.filter(Boolean));
     } catch (err) {
       console.error("Error fetching active users:", err);
       showSnackbar("Failed to load training sessions", "error");
