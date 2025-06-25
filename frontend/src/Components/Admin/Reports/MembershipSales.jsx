@@ -152,7 +152,14 @@ const MembershipSales = ({ branchId }) => {
                 <TableCell>{t.userId?.email || "N/A"}</TableCell>
                 <TableCell>{formatCurrency(t.amount)}</TableCell>
                 <TableCell>{t.transactionType}</TableCell>
-                <TableCell>{new Date(t.subscribedDate).toLocaleDateString()}</TableCell>
+                <TableCell>
+                  {new Date(t.subscribedDate).toLocaleString("en-PH", {
+                    timeZone: "Asia/Manila",
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric"
+                  })}
+                </TableCell>
               </TableRow>
             )) : (
               <TableRow>
