@@ -17,6 +17,39 @@ const CHART_COLORS = [
     COLORS.secondary, COLORS.teal, COLORS.error, COLORS.indigo
 ];
 
+// Custom tooltip component
+const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+        return (
+            <Box sx={{
+                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
+                border: '1px solid rgba(0, 0, 0, 0.1)',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+                fontSize: '14px',
+                fontWeight: 500
+            }}>
+                <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
+                    {label}
+                </Typography>
+                {payload.map((entry, index) => (
+                    <Typography
+                        key={index}
+                        variant="body2"
+                        sx={{ color: entry.color, fontWeight: 500 }}
+                    >
+                        {entry.name}: {entry.value}
+                    </Typography>
+                ))}
+            </Box>
+        );
+    }
+    return null;
+};
+
+
 const LogCharts = ({ branchId }) => {
     const user = getUser();
     const branch = branchId || user.userBranch;
@@ -29,6 +62,8 @@ const LogCharts = ({ branchId }) => {
     const [userFrequencyData, setUserFrequencyData] = useState([]);
     const [averageSessionData, setAverageSessionData] = useState([]);
     const [activeInactiveData, setActiveInactiveData] = useState([]);
+    const [trainingStats, setTrainingStats] = useState(null);
+    const [loadingStats, setLoadingStats] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -52,11 +87,9 @@ const LogCharts = ({ branchId }) => {
         };
 
         fetchData();
-        const interval = setInterval(fetchData(), 2000);
+        const interval = setInterval(fetchData, 2000);
         return () => clearInterval(interval);
-    }, [branch]); // ✅ Add branch to dependency list
-
-
+    }, [branch]);
     useEffect(() => {
         if (logs.length > 0 && users.length > 0) {
             // 1. Daily Activity
@@ -124,37 +157,36 @@ const LogCharts = ({ branchId }) => {
         }
     }, [logs, users]);
 
-    // Custom tooltip component
-    const CustomTooltip = ({ active, payload, label }) => {
-        if (active && payload && payload.length) {
-            return (
-                <Box sx={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    backdropFilter: 'blur(20px)',
-                    border: '1px solid rgba(0, 0, 0, 0.1)',
-                    borderRadius: '12px',
-                    padding: '12px 16px',
-                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
-                    fontSize: '14px',
-                    fontWeight: 500
-                }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
-                        {label}
-                    </Typography>
-                    {payload.map((entry, index) => (
-                        <Typography
-                            key={index}
-                            variant="body2"
-                            sx={{ color: entry.color, fontWeight: 500 }}
-                        >
-                            {entry.name}: {entry.value}
-                        </Typography>
-                    ))}
-                </Box>
-            );
+    const fetchTrainingStats = async () => {
+        try {
+            const res = await axios.post(`${baseURL}/availTrainer/training-usage-stats`, { userBranch: branch });
+            setTrainingStats(res.data);
+        } catch (err) {
+            console.error("Training stats error:", err);
+        } finally {
+            setLoadingStats(false);
         }
-        return null;
     };
+    useEffect(() => {
+        fetchTrainingStats();
+        const interval = setInterval(fetchTrainingStats, 2000);
+        return () => clearInterval(interval);
+    }, [branch]);
+
+    if (loadingStats) {
+        return (
+            <Box sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                minHeight: '60vh',
+                backgroundColor: COLORS.lightGray,
+                borderRadius: '15px'
+            }}>
+                <CircularProgress size={40} sx={{ color: COLORS.success }} />
+            </Box>
+        );
+    }
 
     if (loading) {
         return (
@@ -496,6 +528,59 @@ const LogCharts = ({ branchId }) => {
                             </CardContent>
                         </Card>
                     </Grid>
+                    {trainingStats && (
+                        <Grid item xs={12} md={6}>
+                            <Card sx={{
+                                borderRadius: '16px',
+                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                                height: '100%'
+                            }}>
+                                <CardContent sx={{ p: 4 }}>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            fontWeight: 600,
+                                            color: COLORS.darkGray,
+                                            mb: 3
+                                        }}
+                                    >
+                                        Training Usage Distribution
+                                    </Typography>
+                                    <ResponsiveContainer width="100%" height={280}>
+                                        <PieChart>
+                                            <Pie
+                                                data={trainingStats.allStats}
+                                                dataKey="count"
+                                                nameKey="_id"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={100}
+                                                innerRadius={40}
+                                                paddingAngle={3}
+                                                label={({ _id }) => _id}
+                                            >
+                                                {trainingStats.allStats.map((_, index) => (
+                                                    <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<CustomTooltip />} />
+                                            <Legend wrapperStyle={{ fontSize: '14px', fontWeight: 500 }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                    <Box sx={{ mt: 3 }}>
+                                        <Chip
+                                            label={`Most Used: ${trainingStats.mostUsed?._id} (${trainingStats.mostUsed?.count})`}
+                                            sx={{ mr: 2, backgroundColor: COLORS.success, color: "#fff" }}
+                                        />
+                                        <Chip
+                                            label={`Least Used: ${trainingStats.leastUsed?._id} (${trainingStats.leastUsed?.count})`}
+                                            sx={{ backgroundColor: COLORS.error, color: "#fff" }}
+                                        />
+                                    </Box>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    )}
                 </Grid>
             </Container>
         </Box>

@@ -27,7 +27,7 @@ import { getUser } from "../../../utils/helpers";
 const TrainerList = () => {
   const location = useLocation();
   const user = getUser();
-  const userBranch = user.role === 'superadmin' && !location.state?.branchId ? null: (location.state?.branchId || user.userBranch);
+  const userBranch = user.role === 'superadmin' && !location.state?.branchId ? null : (location.state?.branchId || user.userBranch);
 
   const [trainers, setTrainers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -98,19 +98,21 @@ const TrainerList = () => {
           <Person sx={{ fontSize: 28 }} />
           Trainer List
         </Typography>
-        <Button
-          variant="contained"
-          startIcon={<PersonAdd />}
-          onClick={() => navigate("/admin/create-trainer")}
-          sx={{
-            borderRadius: 2,
-            textTransform: "none",
-            px: 3,
-            py: 1,
-          }}
-        >
-          Add Trainer
-        </Button>
+        {user.role === 'superadmin' && (
+          <Button
+            variant="contained"
+            startIcon={<PersonAdd />}
+            onClick={() => navigate("/admin/create-trainer")}
+            sx={{
+              borderRadius: 2,
+              textTransform: "none",
+              px: 3,
+              py: 1,
+            }}
+          >
+            Add Trainer
+          </Button>
+        )}
       </Box>
 
       {loading ? (

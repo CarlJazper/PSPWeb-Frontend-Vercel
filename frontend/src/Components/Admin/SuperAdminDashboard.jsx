@@ -32,6 +32,7 @@ const SuperAdminDashboard = () => {
           headers: { Authorization: `Bearer ${getToken()}` },
         });
         setBranches(data.branch || []);
+        console.log(data.branch, 'Update')
       } catch (error) {
         console.error('Error fetching branches:', error.response?.data?.message || error.message);
       } finally {

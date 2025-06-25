@@ -82,13 +82,13 @@ const CreateTrainer = () => {
       Object.entries(data).forEach(([key, value]) => formData.append(key, value));
       formData.set("image", avatar);
       formData.set("role", role);
-      console.log(formData, "DATA")
+      console.log(data, "DATA")
 
       const config = { headers: { "Content-Type": "multipart/form-data" } };
       await axios.post(`${baseURL}/users/register`, formData, config);
 
       toast.success("Registered successfully!");
-      navigate("/login");
+      setTimeout(() => navigate("/admin/trainers"), 2000);
     } catch (err) {
       setError("server", { type: "manual", message: err.response.data.message });
     } finally {

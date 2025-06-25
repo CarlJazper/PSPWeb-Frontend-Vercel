@@ -15,10 +15,13 @@ import {
   Tooltip,
   useTheme,
   alpha,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
 } from "@mui/material";
 import { Link } from "react-router-dom";
 import axios from "axios";
-// Import Material Icons
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -26,13 +29,14 @@ import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
 import PhoneOutlinedIcon from '@mui/icons-material/PhoneOutlined';
 import LocationOnOutlinedIcon from '@mui/icons-material/LocationOnOutlined';
 import BusinessOutlinedIcon from '@mui/icons-material/BusinessOutlined';
-
+import { toast } from "react-toastify";
 import baseURL from "../../../utils/baseURL";
-
 
 const BranchList = ({ refresh }) => {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [branchToDelete, setBranchToDelete] = useState(null);
   const theme = useTheme();
 
   useEffect(() => {
@@ -51,49 +55,50 @@ const BranchList = ({ refresh }) => {
     }
   };
 
-  const deleteBranch = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this branch?")) return;
+  const handleOpenDelete = (id) => {
+    setBranchToDelete(id);
+    setOpenDialog(true);
+  };
 
+  const handleConfirmDelete = async () => {
     try {
-      await axios.delete(`${baseURL}/branch/delete-branch/${id}`);
-      setBranches(branches.filter((branch) => branch._id !== id));
+      await axios.delete(`${baseURL}/branch/delete-branch/${branchToDelete}`);
+      setBranches(branches.filter((branch) => branch._id !== branchToDelete));
+      toast.success("Branch deleted successfully");
     } catch (error) {
       console.error("Error deleting branch", error);
+      toast.error("Failed to delete branch");
+    } finally {
+      setOpenDialog(false);
+      setBranchToDelete(null);
     }
   };
 
+  const handleCancelDelete = () => {
+    setOpenDialog(false);
+    setBranchToDelete(null);
+  };
+
   return (
-    <Paper 
-      elevation={3} 
-      sx={{ 
+    <Paper
+      elevation={3}
+      sx={{
         p: 3,
-        mt: 4, 
+        mt: 4,
         mb: 4,
         borderRadius: 3,
         background: theme.palette.background.paper,
         boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)'
       }}
     >
-      <Box 
-        display="flex" 
-        justifyContent="space-between" 
-        alignItems="center" 
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
         mb={4}
-        sx={{
-          borderBottom: `1px solid ${theme.palette.divider}`,
-          pb: 2
-        }}
+        sx={{ borderBottom: `1px solid ${theme.palette.divider}`, pb: 2 }}
       >
-        <Typography 
-          variant="h5" 
-          sx={{ 
-            fontWeight: 600,
-            color: theme.palette.text.primary,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1
-          }}
-        >
+        <Typography variant="h5" sx={{ fontWeight: 600, color: theme.palette.text.primary, display: 'flex', alignItems: 'center', gap: 1 }}>
           <BusinessOutlinedIcon sx={{ fontSize: 28 }} />
           Branch Management
         </Typography>
@@ -108,9 +113,7 @@ const BranchList = ({ refresh }) => {
             px: 3,
             py: 1,
             background: theme.palette.primary.main,
-            '&:hover': {
-              background: theme.palette.primary.dark,
-            }
+            '&:hover': { background: theme.palette.primary.dark },
           }}
         >
           Add New Branch
@@ -135,19 +138,9 @@ const BranchList = ({ refresh }) => {
             <TableBody>
               {branches.length > 0 ? (
                 branches.map((branch) => (
-                  <TableRow 
-                    key={branch._id} 
-                    hover
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: alpha(theme.palette.primary.main, 0.02)
-                      }
-                    }}
-                  >
+                  <TableRow key={branch._id} hover sx={{ '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.02) } }}>
                     <TableCell>
-                      <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                        {branch.name}
-                      </Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 500 }}>{branch.name}</Typography>
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -174,9 +167,9 @@ const BranchList = ({ refresh }) => {
                             component={Link}
                             to={`/admin/update-branch/${branch._id}`}
                             size="small"
-                            sx={{ 
+                            sx={{
                               color: theme.palette.primary.main,
-                              '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.1) }
+                              '&:hover': { backgroundColor: alpha(theme.palette.primary.main, 0.1) },
                             }}
                           >
                             <EditOutlinedIcon fontSize="small" />
@@ -184,11 +177,11 @@ const BranchList = ({ refresh }) => {
                         </Tooltip>
                         <Tooltip title="Delete Branch">
                           <IconButton
-                            onClick={() => deleteBranch(branch._id)}
+                            onClick={() => handleOpenDelete(branch._id)}
                             size="small"
-                            sx={{ 
+                            sx={{
                               color: theme.palette.error.main,
-                              '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.1) }
+                              '&:hover': { backgroundColor: alpha(theme.palette.error.main, 0.1) },
                             }}
                           >
                             <DeleteOutlineIcon fontSize="small" />
@@ -200,15 +193,7 @@ const BranchList = ({ refresh }) => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell 
-                    colSpan={4} 
-                    align="center" 
-                    sx={{ 
-                      py: 8,
-                      color: 'text.secondary',
-                      backgroundColor: alpha(theme.palette.primary.main, 0.02)
-                    }}
-                  >
+                  <TableCell colSpan={4} align="center" sx={{ py: 8, color: 'text.secondary', backgroundColor: alpha(theme.palette.primary.main, 0.02) }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
                       <BusinessOutlinedIcon sx={{ fontSize: 40, color: 'text.disabled' }} />
                       <Typography variant="body1">No branches found</Typography>
@@ -229,6 +214,20 @@ const BranchList = ({ refresh }) => {
           </Table>
         </TableContainer>
       )}
+
+      {/* Confirmation Dialog */}
+      <Dialog open={openDialog} onClose={handleCancelDelete}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          Are you sure you want to delete this branch? This action cannot be undone.
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCancelDelete}>Cancel</Button>
+          <Button onClick={handleConfirmDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Paper>
   );
 };
