@@ -7,6 +7,7 @@ import { CalendarToday, FilterList, Person, Schedule, } from "@mui/icons-materia
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import isEqual from "lodash.isequal";
 
 import axios from "axios";
 import baseURL from "../../../utils/baseURL";
@@ -24,33 +25,39 @@ const UserLogs = ({ branchId }) => {
     const [pendingFrom, setPendingFrom] = useState(null);
     const [pendingTo, setPendingTo] = useState(null);
 
-    useEffect(() => {
-        const fetchLogsAndUsers = async () => {
-            try {
-                const body = { userBranch: branch };
-                const [logsRes, usersRes] = await Promise.all([
-                    axios.post(`${baseURL}/logs/get-all-logs`, body),
-                    axios.post(`${baseURL}/users/get-all-users`, body),
-                ]);
+useEffect(() => {
+    let prevLogs = [];
 
-                const validUsers = usersRes.data.users.filter(user => !user.isDeleted);
+    const fetchLogsAndUsers = async () => {
+        try {
+            const body = { userBranch: branch };
+            const [logsRes, usersRes] = await Promise.all([
+                axios.post(`${baseURL}/logs/get-all-logs`, body),
+                axios.post(`${baseURL}/users/get-all-users`, body),
+            ]);
 
-                const validUserIds = new Set(validUsers.map(user => user._id));
-                const validLogs = logsRes.data.logs.filter(log => validUserIds.has(log.userId?._id));
+            const validUsers = usersRes.data.users.filter(user => !user.isDeleted);
+            const validUserIds = new Set(validUsers.map(user => user._id));
+            const validLogs = logsRes.data.logs.filter(log => validUserIds.has(log.userId?._id));
 
+            // ✅ Only update if logs actually changed
+            if (!isEqual(validLogs, prevLogs)) {
+                prevLogs = validLogs;
                 setLogs(validLogs);
                 setFilteredLogs(validLogs);
-            } catch (err) {
-                setError("Failed to load logs.");
-            } finally {
-                setLoading(false);
             }
-        };
+        } catch (err) {
+            setError("Failed to load logs.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        fetchLogsAndUsers();
-        const interval = setInterval(fetchLogsAndUsers(), 2000);
-        return () => clearInterval(interval);
-    }, [branch]);
+    fetchLogsAndUsers();
+    const interval = setInterval(fetchLogsAndUsers, 5000); // ⏱ every 5 seconds
+    return () => clearInterval(interval);
+}, [branch]);
+
 
 
     const applyFilter = () => {

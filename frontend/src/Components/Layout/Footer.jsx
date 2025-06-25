@@ -127,9 +127,9 @@ const Footer = () => {
 
   const socialLinks = [
     { icon: FacebookIcon, url: 'https://www.facebook.com/philsportsperformancenatiowide/', color: '#1877F2', label: 'Facebook' },
-    { icon: InstagramIcon, url: '#', color: '#E4405F', label: 'Instagram' },
-    { icon: TwitterIcon, url: '#', color: '#1DA1F2', label: 'Twitter' },
-    { icon: YouTubeIcon, url: '#', color: '#FF0000', label: 'YouTube' }
+    // { icon: InstagramIcon, url: '#', color: '#E4405F', label: 'Instagram' },
+    // { icon: TwitterIcon, url: '#', color: '#1DA1F2', label: 'Twitter' },
+    // { icon: YouTubeIcon, url: '#', color: '#FF0000', label: 'YouTube' }
   ];
 
   return (
@@ -142,7 +142,7 @@ const Footer = () => {
                 <AnimatedSection delay={0.1}>
                   <Box display="flex" alignItems="center" mb={2}>
                     <FitnessCenterIcon sx={{ fontSize: 32, color: '#000', mr: 1, animation: `${pulse} 2s ease-in-out infinite` }} />
-                    <Typography variant="h5" fontWeight="bold" color="#C09721">PSP-Taguig</Typography>
+                    <Typography variant="h5" fontWeight="bold" color="#C09721">PSP-Taguig Jr</Typography>
                   </Box>
                   <Typography variant="body2" color="text.secondary" sx={{ mb: 2, lineHeight: 1.6 }}>
                     Empowering athletes and fitness enthusiasts to reach their peak performance through professional training and state-of-the-art facilities.
@@ -156,7 +156,7 @@ const Footer = () => {
                   <Box display="flex" flexDirection="column" gap={1}>
                     <StyledLink component="button" variant="body2" onClick={() => handleOpen('about')}>About Us</StyledLink>
                     <StyledLink component="button" variant="body2" onClick={() => handleOpen('terms')}>Terms & Conditions</StyledLink>
-                    <StyledLink component="button" variant="body2" onClick={() => {}}>Privacy Policy</StyledLink>
+                    {/* <StyledLink component="button" variant="body2" onClick={() => {}}>Privacy Policy</StyledLink> */}
                   </Box>
                 </AnimatedSection>
               </Grid>
@@ -164,7 +164,7 @@ const Footer = () => {
               <Grid item xs={12} sm={6} md={3}>
                 <AnimatedSection delay={0.3}>
                   <Typography variant="h6" gutterBottom fontWeight="bold" color="text.primary">Contact Info</Typography>
-                  <ContactItem><LocationOnIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} /><Typography variant="body2" color="text.secondary">Taguig City, Philippines</Typography></ContactItem>
+                  <ContactItem><LocationOnIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} /><Typography variant="body2" color="text.secondary">138 Ballecer St. South Signal, Taguig, Philippines</Typography></ContactItem>
                   <ContactItem><PhoneIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} /><Typography variant="body2" color="text.secondary">+63 (02) 123-4567</Typography></ContactItem>
                   <ContactItem><EmailIcon sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} /><Typography variant="body2" color="text.secondary">info@psp-taguig.com</Typography></ContactItem>
                 </AnimatedSection>
@@ -196,7 +196,7 @@ const Footer = () => {
                   © {new Date().getFullYear()} PSP-Taguig. All Rights Reserved.
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: { xs: 'center', sm: 'right' } }}>
-                  Made with ❤️ for fitness enthusiasts
+                  Made for fitness enthusiasts
                 </Typography>
               </Box>
             </Box>

@@ -11,6 +11,7 @@ import {
   Select,
   Table,
   TableBody,
+  TablePagination,
   TableCell,
   TableContainer,
   TableHead,
@@ -45,6 +46,8 @@ const MembershipSales = ({ branchId }) => {
   const [viewMode, setViewMode] = useState("chart");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-PH", {
@@ -90,7 +93,7 @@ const MembershipSales = ({ branchId }) => {
     };
 
     fetchSalesData();
-    const interval = setInterval(fetchSalesData(), 2000);
+    const interval = setInterval(fetchSalesData, 2000); // ✅ FIXED
     return () => clearInterval(interval);
   }, [branch]);
 
@@ -126,51 +129,70 @@ const MembershipSales = ({ branchId }) => {
   if (loading) return <CircularProgress />;
   if (error) return <Typography color="error">{error}</Typography>;
 
-  const renderTable = (data, title) => (
-    <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
-        <Typography variant="h6">{title}</Typography>
-        <Button variant="outlined" onClick={() => setViewMode("chart")}>Back to Chart</Button>
-      </Box>
-      <TableContainer component={Paper} sx={{ mb: 3, mt: 1 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Amount</TableCell>
-              <TableCell>Type</TableCell>
-              <TableCell>Date</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.length ? data.map((t) => (
-              <TableRow key={t._id}>
-                <TableCell>{t._id.slice(-6)}</TableCell>
-                <TableCell>{t.userId?.name || "N/A"}</TableCell>
-                <TableCell>{t.userId?.email || "N/A"}</TableCell>
-                <TableCell>{formatCurrency(t.amount)}</TableCell>
-                <TableCell>{t.transactionType}</TableCell>
-                <TableCell>
-                  {new Date(t.subscribedDate).toLocaleString("en-PH", {
-                    timeZone: "Asia/Manila",
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric"
-                  })}
-                </TableCell>
-              </TableRow>
-            )) : (
+  const renderTable = (data, title) => {
+    const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+    return (
+      <>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
+          <Typography variant="h6">{title}</Typography>
+          <Button variant="outlined" onClick={() => setViewMode("chart")}>Back to Chart</Button>
+        </Box>
+
+        <TableContainer component={Paper} sx={{ mb: 1, mt: 1 }}>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center">No transactions</TableCell>
+                <TableCell>ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Amount</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Date</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </>
-  );
+            </TableHead>
+            <TableBody>
+              {paginatedData.length ? paginatedData.map((t) => (
+                <TableRow key={t._id}>
+                  <TableCell>{t._id.slice(-6)}</TableCell>
+                  <TableCell>{t.userId?.name || "N/A"}</TableCell>
+                  <TableCell>{t.userId?.email || "N/A"}</TableCell>
+                  <TableCell>{formatCurrency(t.amount)}</TableCell>
+                  <TableCell>{t.transactionType}</TableCell>
+                  <TableCell>
+                    {new Date(t.subscribedDate).toLocaleString("en-PH", {
+                      timeZone: "Asia/Manila",
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={6} align="center">No transactions</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={data.length}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[5, 10, 25]}
+        />
+      </>
+    );
+  };
+
 
   const renderYearSelector = (value, onChange) => (
     <Select value={value} onChange={(e) => onChange(+e.target.value)} size="small">

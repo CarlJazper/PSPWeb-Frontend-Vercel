@@ -32,6 +32,7 @@
     "dayjs": "^1.11.13",
     "framer-motion": "^12.4.10",
     "gh-pages": "^6.3.0",
+    "lodash.isequal": "^4.5.0",
     "mdbreact": "^5.2.0",
     "mui-datatables": "^4.3.0",
     "rc-slider": "^9.7.5",

@@ -32,17 +32,27 @@ const Header = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+    // ✅ Update user when route changes (login/logout reflects immediately)
     useEffect(() => {
-        const interval = setInterval(() => setUser(getUser()), 1000);
-        return () => clearInterval(interval);
-    }, []);
+        setUser(getUser());
+    }, [location.pathname]);
+
+    // ✅ Reset menu when user changes
+    useEffect(() => {
+        setAnchorEl(null);
+    }, [user]);
 
     const logoutHandler = () => {
         logout(() => navigate('/'));
         toast.success('Logged out', { position: 'bottom-right' });
     };
 
-    const handleMenuClick = (event) => setAnchorEl(event.currentTarget);
+    const handleMenuClick = (event) => {
+        if (event.currentTarget instanceof HTMLElement) {
+            setAnchorEl(event.currentTarget);
+        }
+    };
+
     const handleMenuClose = () => setAnchorEl(null);
 
     const isActive = (path) => location.pathname === path;
@@ -56,7 +66,7 @@ const Header = () => {
 
     const navLinks = (() => {
         if (user?.role === 'superadmin') {
-            return [{ name: 'Dashboard', path: '/admin/super-dashboard' }]; // Or use a separate path if needed
+            return [{ name: 'Dashboard', path: '/admin/super-dashboard' }];
         }
 
         if (user?.role === 'admin') {
@@ -73,7 +83,6 @@ const Header = () => {
         ];
     })();
 
-
     const drawerContent = (
         <Box sx={{ width: 250 }} role="presentation" onClick={() => setMobileOpen(false)}>
             <List>
@@ -85,7 +94,6 @@ const Header = () => {
                                 fontWeight: isActive(link.path) ? 'bold' : 'normal',
                                 color: isActive(link.path) ? '#C09721' : 'inherit'
                             }}
-
                         />
                     </ListItem>
                 ))}
@@ -110,12 +118,18 @@ const Header = () => {
         </Box>
     );
 
+    const logoLink = user?.role === 'superadmin'
+        ? '/admin/super-dashboard'
+        : user?.role === 'admin'
+            ? '/admin/dashboard'
+            : '/';
+
     return (
         <>
             <AppBar position="static" sx={{ backgroundColor: 'transparent', boxShadow: 'none', pt: 1 }}>
                 <Toolbar sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Box sx={{ width: 60, height: 60, borderRadius: '50%', overflow: 'hidden' }}>
-                        <Link to={['admin', 'superadmin'].includes(user?.role) ? '/admin/dashboard' : '/'}>
+                        <Link to={logoLink}>
                             <img
                                 src="/images/psp-logo.png"
                                 alt="Logo"
@@ -148,24 +162,38 @@ const Header = () => {
                         {!isMobile && user && (
                             <>
                                 <IconButton onClick={handleMenuClick}>
-                                    <Avatar alt={user.name} src={user?.image?.[0]?.url} />
-                                </IconButton>
-                                <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
-                                    <MenuItem onClick={handleMenuClose} component={Link} to="/me">
-                                        Profile
-                                    </MenuItem>
-                                    <MenuItem
-                                        onClick={() => {
-                                            setShowQR(true);
-                                            handleMenuClose();
+                                    <Avatar
+                                        alt={user.name}
+                                        src={user?.image?.[0]?.url}
+                                        sx={{
+                                            bgcolor: !user?.image?.[0]?.url ? '#C09721' : undefined,
+                                            color: !user?.image?.[0]?.url ? 'white' : undefined,
+                                            fontWeight: 'bold',
                                         }}
                                     >
-                                        QR Code
-                                    </MenuItem>
-                                    <MenuItem onClick={logoutHandler}>
-                                        <Typography color="error">Logout</Typography>
-                                    </MenuItem>
-                                </Menu>
+                                        {!user?.image?.[0]?.url &&
+                                            user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)}
+                                    </Avatar>
+                                </IconButton>
+
+                                {anchorEl instanceof HTMLElement && (
+                                    <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose}>
+                                        <MenuItem onClick={handleMenuClose} component={Link} to="/me">
+                                            Profile
+                                        </MenuItem>
+                                        <MenuItem
+                                            onClick={() => {
+                                                setShowQR(true);
+                                                handleMenuClose();
+                                            }}
+                                        >
+                                            QR Code
+                                        </MenuItem>
+                                        <MenuItem onClick={logoutHandler}>
+                                            <Typography color="error">Logout</Typography>
+                                        </MenuItem>
+                                    </Menu>
+                                )}
                             </>
                         )}
                         {!isMobile && !user && (

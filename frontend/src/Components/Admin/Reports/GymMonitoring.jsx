@@ -17,6 +17,8 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 import { format, parseISO } from 'date-fns';
+import isEqual from 'lodash.isequal';
+
 import baseURL from '../../../utils/baseURL';
 import { getUser } from '../../../utils/helpers';
 
@@ -30,33 +32,29 @@ const GymMonitoring = ({ branchId }) => {
 
   const fetchData = async () => {
     try {
-      const body = {
-        userBranch: branch
-      };
+      const body = { userBranch: branch };
 
-      // ✅ Fetch logs and users in parallel
       const [logsRes, usersRes] = await Promise.all([
         axios.post(`${baseURL}/logs/get-all-logs`, body),
         axios.post(`${baseURL}/users/get-all-users`, body)
       ]);
 
-      // ✅ Filter logs where timeOut is not set (still active)
-      // First filter active logs
       const rawActiveSessions = logsRes.data.logs.filter(log => !log.timeOut);
-
-      // Then filter users
       const allUsers = usersRes.data.users;
       const filteredUsers = allUsers.filter(user => !user.isDeleted);
-
-      // Filter out logs for deleted users
       const active = rawActiveSessions.filter(session =>
         filteredUsers.some(user => user._id === session.userId._id)
       );
 
+      // ✅ Only update if data changed
+      if (!isEqual(active, activeSessions)) {
+        setActiveSessions(active);
+      }
 
-      // ✅ Set state
-      setActiveSessions(active);
-      setUsers(filteredUsers);
+      if (!isEqual(filteredUsers, users)) {
+        setUsers(filteredUsers);
+      }
+
       setError(null);
     } catch (err) {
       console.error('Error fetching data:', err);
@@ -65,6 +63,7 @@ const GymMonitoring = ({ branchId }) => {
       setLoading(false);
     }
   };
+
 
 
   useEffect(() => {

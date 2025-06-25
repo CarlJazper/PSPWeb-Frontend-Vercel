@@ -8,6 +8,7 @@ import {
   Grid,
   Table,
   TableBody,
+  TablePagination,
   TableCell,
   TableContainer,
   TableHead,
@@ -45,6 +46,9 @@ const TrainingSessions = ({ branchId }) => {
   const [viewMode, setViewMode] = useState("chart");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(5);
+
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(value || 0);
@@ -83,7 +87,7 @@ const TrainingSessions = ({ branchId }) => {
     };
 
     fetchSalesData();
-    const interval = setInterval(fetchSalesData(), 2000);
+    const interval = setInterval(fetchSalesData, 2000);
     return () => clearInterval(interval);
   }, [userBranch]);
 
@@ -103,50 +107,69 @@ const TrainingSessions = ({ branchId }) => {
     return monthly;
   };
 
-  const renderTable = (data, title) => (
-    <>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
-        <Typography variant="h6">{title}</Typography>
-        <Button variant="outlined" onClick={() => setViewMode("chart")}>Back to Chart</Button>
-      </Box>
-      <TableContainer component={Paper} sx={{ mb: 3, mt: 1 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Name</TableCell>
-              <TableCell>Email</TableCell>
-              <TableCell>Phone</TableCell>
-              <TableCell>Package</TableCell>
-              <TableCell>Session Rate</TableCell>
-              <TableCell>Total</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.length ? data.map((s) => (
-              <TableRow key={s._id}>
-                <TableCell>{s._id.slice(-6)}</TableCell>
-                <TableCell>{s.userId?.name || "N/A"}</TableCell>
-                <TableCell>{s.email}</TableCell>
-                <TableCell>{s.phone}</TableCell>
-                <TableCell>{s.package}</TableCell>
-                <TableCell>{formatCurrency(s.sessionRate)}</TableCell>
-                <TableCell>{formatCurrency(s.total)}</TableCell>
-                <TableCell style={{ color: s.status === "active" ? "green" : "gray" }}>
-                  {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
-                </TableCell>
-              </TableRow>
-            )) : (
+  const renderTable = (data, title) => {
+    const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
+    return (
+      <>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
+          <Typography variant="h6">{title}</Typography>
+          <Button variant="outlined" onClick={() => setViewMode("chart")}>Back to Chart</Button>
+        </Box>
+
+        <TableContainer component={Paper} sx={{ mb: 1, mt: 1 }}>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={8} align="center">No training sessions</TableCell>
+                <TableCell>ID</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Phone</TableCell>
+                <TableCell>Package</TableCell>
+                <TableCell>Session Rate</TableCell>
+                <TableCell>Total</TableCell>
+                <TableCell>Status</TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
-    </>
-  );
+            </TableHead>
+            <TableBody>
+              {paginatedData.length ? paginatedData.map((s) => (
+                <TableRow key={s._id}>
+                  <TableCell>{s._id.slice(-6)}</TableCell>
+                  <TableCell>{s.userId?.name || "N/A"}</TableCell>
+                  <TableCell>{s.email}</TableCell>
+                  <TableCell>{s.phone}</TableCell>
+                  <TableCell>{s.package}</TableCell>
+                  <TableCell>{formatCurrency(s.sessionRate)}</TableCell>
+                  <TableCell>{formatCurrency(s.total)}</TableCell>
+                  <TableCell style={{ color: s.status === "active" ? "green" : "gray" }}>
+                    {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">No training sessions</TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <TablePagination
+          component="div"
+          count={data.length}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          rowsPerPageOptions={[5, 10, 25]}
+        />
+      </>
+    );
+  };
+
 
   const renderYearSelector = (value, onChange) => (
     <Select value={value} onChange={(e) => onChange(+e.target.value)} size="small">

@@ -22,6 +22,7 @@ import dayGridPlugin from '@fullcalendar/daygrid';
 import interactionPlugin from '@fullcalendar/interaction';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { GlobalStyles } from "@mui/material";
+import isEqual from 'lodash.isequal';
 
 import { getUser } from "../../../utils/helpers";
 
@@ -70,64 +71,66 @@ const TrainingSessions = ({ branchId }) => {
     }
   };
 
-  const fetchActiveUsers = useCallback(async () => {
-    setLoading(true);
-    try {
-      // Step 1: Fetch all availTrainer records (ideally filtered by branch)
-      const { data: trainings } = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
-      // Step 2: Check which users have active training
-      const active = await Promise.all(
-        trainings.map(async ({ userId, coachID, _id }) => {
-          try {
-            const { data } = await axios.post(`${baseURL}/availTrainer/has-active`, { userBranch });
-            console.log(data, 'Data');
-            // Find the specific training entry for the current user
-            const entry = data.hasActive.find((item) => item.user._id === userId._id);
-            return entry
-              ? {
+const fetchActiveUsers = useCallback(async () => {
+  try {
+    const { data: trainings } = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
+
+    const active = await Promise.all(
+      trainings.map(async ({ userId }) => {
+        try {
+          const { data } = await axios.post(`${baseURL}/availTrainer/has-active`, { userBranch });
+          const entry = data.hasActive.find((item) => item.user._id === userId._id);
+          return entry
+            ? {
                 user: entry.user,
                 coach: entry.coach,
                 sessions: entry.sessions || [],
                 trainingId: entry.trainingId,
               }
-              : null;
-          } catch (err) {
-            console.warn("Error checking active training for user:", userId?._id, err);
-            return null;
-          }
-        })
-      );
+            : null;
+        } catch (err) {
+          console.warn("Error checking active training for user:", userId?._id, err);
+          return null;
+        }
+      })
+    );
 
-      setUsers(active.filter(Boolean)); // Only users with active training
-      const sessionEvents = active
-        .filter(Boolean)
-        .flatMap(({ user, coach, sessions }) =>
-          sessions.map((session, idx) => ({
-            title: `${coach?.name || "Unassigned"}`,
-            date: session.dateAssigned,
-            extendedProps: {
-              coach: coach?.name || "Unassigned",
-              client: user.name,
-              status: session.status,
-              time: session.timeAssigned,
-              sessionNumber: idx + 1,
-              coachEmail: coach?.email || '',
-              clientEmail: user.email || ''
-            },
-            backgroundColor: getStatusColor(session.status).bg,
-            borderColor: getStatusColor(session.status).border,
-            textColor: getStatusColor(session.status).text,
-          }))
-        );
-      setEvents(sessionEvents);
+    const filteredActive = active.filter(Boolean);
+    const sessionEvents = filteredActive.flatMap(({ user, coach, sessions }) =>
+      sessions.map((session, idx) => ({
+        title: `${coach?.name || "Unassigned"}`,
+        date: session.dateAssigned,
+        extendedProps: {
+          coach: coach?.name || "Unassigned",
+          client: user.name,
+          status: session.status,
+          time: session.timeAssigned,
+          sessionNumber: idx + 1,
+          coachEmail: coach?.email || '',
+          clientEmail: user.email || ''
+        },
+        backgroundColor: getStatusColor(session.status).bg,
+        borderColor: getStatusColor(session.status).border,
+        textColor: getStatusColor(session.status).text,
+      }))
+    );
 
-    } catch (err) {
-      console.error("Error fetching active users:", err);
-      showSnackbar("Failed to load training sessions", "error");
-    } finally {
-      setLoading(false);
+    // Only update state if there's a change
+    if (!isEqual(filteredActive, users)) {
+      setUsers(filteredActive);
     }
-  }, [userBranch]);
+
+    if (!isEqual(sessionEvents, events)) {
+      setEvents(sessionEvents);
+    }
+  } catch (err) {
+    console.error("Error fetching active users:", err);
+    showSnackbar("Failed to load training sessions", "error");
+  } finally {
+    setLoading(false);
+  }
+}, [userBranch, users, events]);
+
 
   const fetchCoaches = async () => {
     try {
@@ -167,11 +170,17 @@ const TrainingSessions = ({ branchId }) => {
     }
   };
 
-  useEffect(() => {
+useEffect(() => {
+  fetchActiveUsers(); // initial fetch
+
+  const interval = setInterval(() => {
     fetchActiveUsers();
-    const interval = setInterval(fetchActiveUsers(), 2000);
-    return () => clearInterval(interval);
-  }, [fetchActiveUsers]);
+  }, 5000); // 5 seconds is more stable
+
+  return () => clearInterval(interval);
+}, [fetchActiveUsers]);
+
+
 
   if (loading) {
     return (
