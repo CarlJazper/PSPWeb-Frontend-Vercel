@@ -156,6 +156,7 @@ const UsersList = () => {
                   <TableCell padding="checkbox">
                     <Checkbox checked={allSelected} indeterminate={selectedUsers.length > 0 && !allSelected} onChange={handleSelectAll} />
                   </TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Id</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
@@ -168,6 +169,7 @@ const UsersList = () => {
                     <TableCell padding="checkbox">
                       <Checkbox checked={selectedUsers.includes(user._id)} onChange={() => toggleUserSelection(user._id)} />
                     </TableCell>
+                    <TableCell>{user._id.slice(-6)}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.role}</TableCell>

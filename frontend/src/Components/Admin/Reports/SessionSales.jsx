@@ -150,12 +150,11 @@ const TrainingSessions = ({ branchId }) => {
       s.package,
       formatCurrency(s.sessionRate),
       formatCurrency(s.total),
-      s.status,
     ]);
 
     autoTable(doc, {
       startY: 40,
-      head: [["ID", "Name", "Email", "Phone", "Package", "Rate", "Total", "Status"]],
+      head: [["ID", "Name", "Email", "Phone", "Package", "Rate", "Total"]],
       body: tableData,
       styles: { fontSize: 8 },
     });
