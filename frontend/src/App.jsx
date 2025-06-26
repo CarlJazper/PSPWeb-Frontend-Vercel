@@ -44,6 +44,7 @@ import UserLogs from './Components/Admin/Reports/UserLogs';
 import LogCharts from './Components/Admin/Reports/LogCharts';
 import GymMonitoring from './Components/Admin/Reports/GymMonitoring';
 import TrainingSession from './Components/Admin/Reports/TrainingSession';
+import ViewUser from './Components/Admin/User/ViewUser';
 
 // Layouts & Utils
 import Header from './Components/Layout/Header';
@@ -102,6 +103,7 @@ function App() {
               <Route path="users" element={<UsersList />} />
               <Route path="user/:id" element={<UpdateUser />} />
               <Route path="client/register" element={<Register />} />
+              <Route path="user/view/:id" element={<ViewUser />} />
 
               {/* Branch Management */}
               <Route path="branches" element={<BranchList refresh={refresh} />} />
