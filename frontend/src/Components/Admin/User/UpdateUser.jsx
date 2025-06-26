@@ -9,6 +9,8 @@ const UpdateUser = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [role, setRole] = useState('');
+    const [image, setImage] = useState(null);
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [user, setUser] = useState(true);
@@ -33,13 +35,20 @@ const UpdateUser = () => {
         }
     };
 
-    const updateUser = async (id, userData) => {
+    const updateUser = async (userData) => {
         try {
-            const { data } = await axios.put(`${baseURL}/users/update/${id}`, userData, config);
+            const { data } = await axios.put(`${baseURL}/users/update`, userData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    'Authorization': `Bearer ${getToken()}`
+                }
+            });
+
             setIsUpdated(data.success);
             setLoading(false);
         } catch (error) {
-            setError(error.response.data.message);
+            setError(error.response?.data?.message || "Update failed");
+            console.error("Update error:", error);
         }
     };
 
@@ -65,12 +74,19 @@ const UpdateUser = () => {
 
     const submitHandler = (e) => {
         e.preventDefault();
+
         const formData = new FormData();
+        formData.set('_id', user._id);
         formData.set('name', name);
         formData.set('email', email);
         formData.set('role', role);
-        updateUser(user._id, formData);
+        if (image) {
+            formData.append('image', image);
+        }
+
+        updateUser(formData);
     };
+
 
     return (
         <>
@@ -116,6 +132,16 @@ const UpdateUser = () => {
                                             </Select>
                                         </FormControl>
                                     </Grid>
+                                    {/* Hidden image input to preserve update logic, but not visible to admin */}
+                                    <Grid item xs={12} sx={{ display: 'none' }}>
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setImage(e.target.files[0])}
+                                        />
+                                    </Grid>
+
+
                                     <Grid item xs={12}>
                                         <Button
                                             variant="contained"
