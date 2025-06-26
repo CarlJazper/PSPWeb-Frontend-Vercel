@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import Visibility from '@mui/icons-material/Visibility';  // Correct import
 import { EditOutlined, DeleteOutline, PersonAdd, Person } from "@mui/icons-material";
+import { toast } from "react-toastify"; // make sure this import is present
 import baseURL from '../../../utils/baseURL'
 import { getUser } from "../../../utils/helpers";
 
@@ -55,10 +56,13 @@ const TrainerList = () => {
     if (!window.confirm("Are you sure you want to delete this trainer?")) return;
 
     try {
-      await axios.delete(`${baseURL}/users/delete/${trainerId}`);
+      await axios.delete(`${baseURL}/users/user-delete/${trainerId}`);
       setTrainers((prev) => prev.filter((trainer) => trainer._id !== trainerId));
+
+      toast.success("Trainer deleted successfully!");
     } catch (error) {
       console.error("Error deleting trainer:", error);
+      toast.error("Failed to delete trainer.");
     }
   };
 
