@@ -80,7 +80,6 @@ function App() {
 
             {/* ----------------- Auth Routes ----------------- */}
             <Route path="/login" element={<Login />} />
-            <Route path="/client/register" element={<Register />} />
 
             {/* ----------------- Public Password Reset ----------------- */}
             <Route path="/password/forgot" element={<ForgotPassword />} />
@@ -102,6 +101,7 @@ function App() {
               {/* User Management */}
               <Route path="users" element={<UsersList />} />
               <Route path="user/:id" element={<UpdateUser />} />
+              <Route path="client/register" element={<Register />} />
 
               {/* Branch Management */}
               <Route path="branches" element={<BranchList refresh={refresh} />} />

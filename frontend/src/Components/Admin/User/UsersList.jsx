@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import DataTable from 'react-data-table-component';
 import axios from 'axios';
-import { FaEdit, FaTrash, FaDownload } from 'react-icons/fa';
 import { getToken, errMsg, successMsg, getUser } from '../../../utils/helpers';
-import baseURL from "../../../utils/baseURL";
-import Loader from '../../Layout/Loader';
+import baseURL from '../../../utils/baseURL';
 import * as XLSX from 'xlsx';
-import { Box, Typography } from '@mui/material';
+import Loader from '../../Layout/Loader';
+import {
+  Box, Typography, TextField, Select, MenuItem, Button,
+  InputLabel, FormControl, Paper, Table, TableBody, TableCell,
+  TableContainer, TableHead, TableRow, Checkbox, IconButton,
+  TablePagination, useTheme, alpha, Dialog, DialogTitle, DialogContent, DialogContentText,
+  DialogActions, Fade, CircularProgress
+} from '@mui/material';
+import { Edit, Delete, Download, Person } from '@mui/icons-material';
 
 const UsersList = () => {
   const location = useLocation();
@@ -15,16 +20,19 @@ const UsersList = () => {
   const user = getUser();
   const userBranch = user.role === 'superadmin' && !passedBranchId ? null : (passedBranchId || user.userBranch);
 
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [allUsers, setAllUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDeleted, setIsDeleted] = useState('');
+  const [openConfirm, setOpenConfirm] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [roleFilter, setRoleFilter] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const theme = useTheme();
   const navigate = useNavigate();
 
   const config = {
@@ -37,16 +45,13 @@ const UsersList = () => {
   const listUsers = async () => {
     try {
       const payload = userBranch ? { userBranch } : {};
-
-      const { data } = await axios.post(`${baseURL}/users/get-all-users?role=user`,payload,config);
-
+      const { data } = await axios.post(`${baseURL}/users/get-all-users?role=user`, payload, config);
       const nonAdminUsers = data.users.filter(user => user.role !== 'admin');
-
       setAllUsers(nonAdminUsers);
       setFilteredUsers(nonAdminUsers);
-      setLoading(false);
     } catch (error) {
-      setError(error.response?.data?.message || "Error fetching users");
+      setError(error.response?.data?.message || 'Error fetching users');
+    } finally {
       setLoading(false);
     }
   };
@@ -55,18 +60,12 @@ const UsersList = () => {
     try {
       const { data } = await axios.delete(`${baseURL}/users/user-delete/${id}`, config);
       setIsDeleted(data.success);
-      setLoading(false);
     } catch (error) {
-      setError(error.response.data.message);
+      setError(error.response?.data?.message || 'Error deleting user');
     }
   };
 
-  const handleRoleFilterChange = (e) => {
-    setRoleFilter(e.target.value);
-  };
-
   const handleExportCSV = () => {
-    // Export only the selected users
     const selectedUserData = allUsers.filter(user => selectedUsers.includes(user._id));
     const ws = XLSX.utils.json_to_sheet(selectedUserData);
     const wb = XLSX.utils.book_new();
@@ -76,207 +75,142 @@ const UsersList = () => {
 
   useEffect(() => {
     listUsers();
+  }, [isDeleted]);
+
+  useEffect(() => {
     if (error) {
       errMsg(error);
       setError('');
     }
     if (isDeleted) {
       successMsg('User deleted successfully');
-      navigate('/admin/users');
+      setIsDeleted('');
     }
   }, [error, isDeleted]);
 
   useEffect(() => {
-    setFilteredUsers(
-      allUsers.filter(user =>
-        (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-        (roleFilter ? user.role.toLowerCase() === roleFilter.toLowerCase() : true)
-      )
+    const filtered = allUsers.filter(user =>
+      (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
+      (roleFilter ? user.role.toLowerCase() === roleFilter.toLowerCase() : true)
     );
+    setFilteredUsers(filtered);
+    setPage(0);
   }, [searchTerm, allUsers, roleFilter]);
 
-  const deleteUserHandler = (id) => deleteUser(id);
+  const toggleUserSelection = (id) => {
+    setSelectedUsers(prev =>
+      prev.includes(id) ? prev.filter(uid => uid !== id) : [...prev, id]
+    );
+  };
 
-  const columns = [
-    { name: 'Name', selector: (row) => row.name, sortable: true },
-    { name: 'Email', selector: (row) => row.email, sortable: true },
-    { name: 'Role', selector: (row) => row.role, sortable: true },
-    {
-      name: 'Actions',
-      cell: (row) => (
-        <div className="actions">
-          <Link to={`/admin/user/${row._id}`} className="edit-btn" title="Edit User">
-            <FaEdit size={18} />
-          </Link>
-          <button onClick={() => deleteUserHandler(row._id)} className="delete-btn" title="Delete User">
-            <FaTrash size={18} />
-          </button>
-        </div>
-      ),
-    },
-  ];
+  const handleSelectAll = (event) => {
+    if (event.target.checked) {
+      const allIds = filteredUsers.map(user => user._id);
+      setSelectedUsers(allIds);
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
+  const allSelected = filteredUsers.length > 0 && selectedUsers.length === filteredUsers.length;
+
+  const handleChangePage = (event, newPage) => setPage(newPage);
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   return (
-    <>
-      <div className="users-container">
-        <h1>All Users</h1>
-        <Box sx={{ textAlign: 'center', mt: 3 }}>
-          <Typography sx={{ color: 'rgba(255,255,255,0.7)' }}>
-            <Link
-              to="/client/register"
-              style={{
-                color: '#4ECDC4',
-                textDecoration: 'none',
-                backgroundColor: 'black',
-                padding: 15,
-                borderRadius: 20,
-              }}
-            >
-              Add Client
-            </Link>
+    <Paper elevation={3} sx={{ p: 3, m: 4, borderRadius: 3, background: theme.palette.background.paper, boxShadow: "0 4px 20px rgba(0,0,0,0.05)" }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4} sx={{ borderBottom: `1px solid ${theme.palette.divider}`, pb: 2 }}>
+        <Box display="flex" alignItems="center" gap={2} flexWrap="wrap">
+          <Typography variant="h5" fontWeight="bold" display="flex" alignItems="center" gap={1}>
+            <Person color="primary" /> User List
           </Typography>
+          <TextField label="Search" variant="outlined" size="small" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+          <FormControl size="small" sx={{ minWidth: 120 }}>
+            <InputLabel>Role</InputLabel>
+            <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} label="Role">
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="admin">Admin</MenuItem>
+              <MenuItem value="user">User</MenuItem>
+              <MenuItem value="coach">Coach</MenuItem>
+              <MenuItem value="client">Client</MenuItem>
+            </Select>
+          </FormControl>
         </Box>
-        <div className="filters">
-          <input
-            type="text"
-            placeholder="Search users..."
-            className="search-input"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <select
-            className="role-filter"
-            value={roleFilter}
-            onChange={handleRoleFilterChange}
-          >
-            <option value="">All Roles</option>
-            <option value="admin">Admin</option>
-            <option value="user">User</option>
-            <option value="coach">Coach</option>
-            <option value="client">Client</option>
-          </select>
-          <button
-            onClick={handleExportCSV}
-            className={`export-btn ${!selectedUsers.length ? 'disabled' : ''}`}
-            disabled={!selectedUsers.length}
-          >
-            <FaDownload size={18} /> Export Selected CSV
-          </button>
+        <Box display="flex" gap={2} flexWrap="wrap">
+          <Button variant="contained" color="success" size="small" startIcon={<Download />} onClick={handleExportCSV} disabled={!selectedUsers.length}>Export</Button>
+          <Button component={Link} to="/admin/client/register" variant="contained" color="primary" size="small">Add Client</Button>
+        </Box>
+      </Box>
 
-        </div>
-        {loading ? <Loader /> :
-          <DataTable
-            columns={columns}
-            data={filteredUsers}
-            pagination
-            paginationPerPage={itemsPerPage}
-            onChangeRowsPerPage={setItemsPerPage}
-            highlightOnHover
-            responsive
-            striped
-            selectableRows
-            onSelectedRowsChange={state => setSelectedUsers(state.selectedRows.map(row => row._id))}
-            selectableRowsHighlight
+      <Fade in={!loading} unmountOnExit>
+        <Box>
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: alpha(theme.palette.primary.main, 0.05) }}>
+                  <TableCell padding="checkbox">
+                    <Checkbox checked={allSelected} indeterminate={selectedUsers.length > 0 && !allSelected} onChange={handleSelectAll} />
+                  </TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }} align="center">Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map(user => (
+                  <TableRow key={user._id} hover>
+                    <TableCell padding="checkbox">
+                      <Checkbox checked={selectedUsers.includes(user._id)} onChange={() => toggleUserSelection(user._id)} />
+                    </TableCell>
+                    <TableCell>{user.name}</TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.role}</TableCell>
+                    <TableCell align="center">
+                      <IconButton component={Link} to={`/admin/user/${user._id}`} color="primary"><Edit /></IconButton>
+                      <IconButton onClick={() => { setUserToDelete(user._id); setOpenConfirm(true); }} color="error"><Delete /></IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          <Dialog open={openConfirm} onClose={() => setOpenConfirm(false)}>
+            <DialogTitle>Confirm Delete</DialogTitle>
+            <DialogContent>
+              <DialogContentText>Are you sure you want to delete this user? This action cannot be undone.</DialogContentText>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setOpenConfirm(false)} color="primary">Cancel</Button>
+              <Button onClick={() => { deleteUser(userToDelete); setOpenConfirm(false); }} color="error">Delete</Button>
+            </DialogActions>
+          </Dialog>
+
+          <TablePagination
+            component="div"
+            count={filteredUsers.length}
+            page={page}
+            onPageChange={handleChangePage}
+            rowsPerPage={rowsPerPage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+            rowsPerPageOptions={[5, 10, 25, 50]}
           />
-        }
-      </div>
-    </>
+        </Box>
+      </Fade>
+
+      {loading && (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+          <CircularProgress color="primary" />
+        </Box>
+      )}
+    </Paper>
   );
 };
+
 export default UsersList;
-
-/* CSS STYLES */
-const styles = `
-.users-container {
-  max-width: none;
-  margin: 40px auto;
-  padding: 20px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-}
-
-h1 {
-  text-align: center;
-  color: #333;
-  margin-bottom: 20px;
-  font-size: 24px;
-  font-weight: bold;
-}
-
-.filters {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.search-input, .role-filter {
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
-}
-
-.export-btn, .delete-selected-btn {
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  background-color: #28a745;
-  color: white;
-  cursor: pointer;
-  font-size: 16px;
-  transition: background 0.3s ease;
-}
-
-.export-btn:hover, .delete-selected-btn:hover {
-  background-color: #218838;
-}
-
-.export-btn:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.actions {
-  display: flex;
-  gap: 12px;
-}
-
-.edit-btn, .delete-btn {
-  padding: 10px;
-  border: none;
-  border-radius: 10px;
-  cursor: pointer;
-  text-decoration: none;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.3s ease;
-}
-
-.edit-btn {
-  background: #007bff;
-  color: white;
-}
-
-.delete-btn {
-  background: #dc3545;
-  color: white;
-}
-
-.edit-btn:hover {
-  background: #0056b3;
-}
-
-.delete-btn:hover {
-  background: #a71d2a;
-}
-`;
-
-const styleSheet = document.createElement("style");
-styleSheet.type = "text/css";
-styleSheet.innerText = styles;
-document.head.appendChild(styleSheet);
