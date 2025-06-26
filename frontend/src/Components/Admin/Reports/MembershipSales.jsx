@@ -32,6 +32,8 @@ import {
 } from "recharts";
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const MembershipSales = ({ branchId }) => {
   const user = getUser();
@@ -48,6 +50,8 @@ const MembershipSales = ({ branchId }) => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [branchName, setBranchName] = useState("");
+
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-PH", {
@@ -85,6 +89,22 @@ const MembershipSales = ({ branchId }) => {
         });
 
         setSalesData(salesRes.data);
+
+        if (branch && user.role === "superadmin") {
+          const token = localStorage.getItem("token");
+          axios
+            .get(`${baseURL}/branch/get-branch/${branch}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+            .then((res) => {
+              setBranchName(res.data.branch.name); // adjust based on actual response structure
+            })
+            .catch(() => {
+              setBranchName("Unknown Branch");
+            });
+        }
+
+
       } catch (err) {
         setError("Failed to fetch membership sales data");
       } finally {
@@ -202,6 +222,51 @@ const MembershipSales = ({ branchId }) => {
     </Select>
   );
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const title = branchName ? `Branch: ${branchName}` : "All Branches";
+    const date = new Date().toLocaleString("en-PH", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+    });
+
+    doc.setFontSize(16);
+    doc.text("Membership Sales Report", 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${date}`, 14, 26);
+    doc.text(title, 14, 32);
+
+    const tableData = transactions.all.map((t) => [
+      t._id.slice(-6),
+      t.userId?.name || "N/A",
+      t.userId?.email || "N/A",
+      formatCurrency(t.amount),
+      t.transactionType,
+      new Date(t.subscribedDate).toLocaleDateString("en-PH", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["ID", "Name", "Email", "Amount", "Type", "Date"]],
+      body: tableData,
+      styles: { fontSize: 8 },
+    });
+
+    const total = transactions.all.reduce((sum, t) => sum + t.amount, 0);
+    doc.setFontSize(12);
+    doc.text(`Total Sales: ${formatCurrency(total)}`, 14, doc.lastAutoTable.finalY + 10);
+
+    doc.save(`Membership_Sales_Report_${branchName || "AllBranches"}.pdf`);
+  };
+
   return (
     <Grid container spacing={2}>
       {/* Summary Cards */}
@@ -223,7 +288,14 @@ const MembershipSales = ({ branchId }) => {
 
       {/* Chart View */}
       {viewMode === "chart" && (
+
         <Grid item xs={12}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+            <Button variant="contained" color="primary" onClick={exportToPDF}>
+              Export Sales Report (PDF)
+            </Button>
+          </Box>
+
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
             <Typography variant="h6">Sales Trend ({selectedYearlyYear})</Typography>
             {renderYearSelector(selectedYearlyYear, setSelectedYearlyYear)}

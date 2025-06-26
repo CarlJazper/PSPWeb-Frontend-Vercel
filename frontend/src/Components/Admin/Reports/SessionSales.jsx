@@ -32,6 +32,8 @@ import {
 } from "recharts";
 import baseURL from "../../../utils/baseURL";
 import { getUser } from "../../../utils/helpers";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const TrainingSessions = ({ branchId }) => {
   const user = getUser();
@@ -48,7 +50,7 @@ const TrainingSessions = ({ branchId }) => {
   const [error, setError] = useState(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(5);
-
+  const [branchName, setBranchName] = useState("");
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(value || 0);
@@ -79,6 +81,21 @@ const TrainingSessions = ({ branchId }) => {
         });
 
         setSalesData(salesRes.data);
+
+        if (user.role === "superadmin" && userBranch) {
+          axios
+            .get(`${baseURL}/branch/get-branch/${userBranch}`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            })
+            .then((res) => {
+              setBranchName(res.data.branch.name); // ✅ Adjust if structure is different
+            })
+            .catch(() => {
+              setBranchName("Unknown Branch");
+            });
+        }
+
+
       } catch (err) {
         setError("Failed to fetch training sessions data");
       } finally {
@@ -107,8 +124,52 @@ const TrainingSessions = ({ branchId }) => {
     return monthly;
   };
 
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+    const title = branchName ? `Branch: ${branchName}` : "All Branches";
+    const date = new Date().toLocaleString("en-PH", {
+      timeZone: "Asia/Manila",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+    });
+
+    doc.setFontSize(16);
+    doc.text("Training Session Sales Report", 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${date}`, 14, 26);
+    doc.text(title, 14, 32);
+
+    const tableData = sessions.all.map((s) => [
+      s._id.slice(-6),
+      s.userId?.name || "N/A",
+      s.email,
+      s.phone,
+      s.package,
+      formatCurrency(s.sessionRate),
+      formatCurrency(s.total),
+      s.status,
+    ]);
+
+    autoTable(doc, {
+      startY: 40,
+      head: [["ID", "Name", "Email", "Phone", "Package", "Rate", "Total", "Status"]],
+      body: tableData,
+      styles: { fontSize: 8 },
+    });
+
+    const total = sessions.all.reduce((sum, s) => sum + s.total, 0);
+    doc.setFontSize(12);
+    doc.text(`Total Sales: ${formatCurrency(total)}`, 14, doc.lastAutoTable.finalY + 10);
+
+    doc.save(`Session_Sales_Report_${branchName || "AllBranches"}.pdf`);
+  };
+
   const renderTable = (data, title) => {
     const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+
 
     return (
       <>
@@ -210,6 +271,12 @@ const TrainingSessions = ({ branchId }) => {
 
       {viewMode === "chart" && (
         <Grid item xs={12}>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+            <Button variant="contained" color="primary" onClick={exportToPDF}>
+              Export Report (PDF)
+            </Button>
+          </Box>
+
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
             <Typography variant="h6">Training Sales Trend ({selectedYearlyYear})</Typography>
             {renderYearSelector(selectedYearlyYear, setSelectedYearlyYear)}
