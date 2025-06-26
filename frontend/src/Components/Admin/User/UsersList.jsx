@@ -4,10 +4,9 @@ import axios from 'axios';
 import { getToken, errMsg, successMsg, getUser } from '../../../utils/helpers';
 import baseURL from '../../../utils/baseURL';
 import * as XLSX from 'xlsx';
-import Loader from '../../Layout/Loader';
 import {
-  Box, Typography, TextField, Select, MenuItem, Button,
-  InputLabel, FormControl, Paper, Table, TableBody, TableCell,
+  Box, Typography, TextField, Button,
+  Paper, Table, TableBody, TableCell,
   TableContainer, TableHead, TableRow, Checkbox, IconButton,
   TablePagination, useTheme, alpha, Dialog, DialogTitle, DialogContent, DialogContentText,
   DialogActions, Fade, CircularProgress
@@ -29,7 +28,6 @@ const UsersList = () => {
   const [openConfirm, setOpenConfirm] = useState(false);
   const [userToDelete, setUserToDelete] = useState(null);
   const [selectedUsers, setSelectedUsers] = useState([]);
-  const [roleFilter, setRoleFilter] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const theme = useTheme();
@@ -90,13 +88,12 @@ const UsersList = () => {
 
   useEffect(() => {
     const filtered = allUsers.filter(user =>
-      (user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase())) &&
-      (roleFilter ? user.role.toLowerCase() === roleFilter.toLowerCase() : true)
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredUsers(filtered);
     setPage(0);
-  }, [searchTerm, allUsers, roleFilter]);
+  }, [searchTerm, allUsers]);
 
   const toggleUserSelection = (id) => {
     setSelectedUsers(prev =>
@@ -130,16 +127,6 @@ const UsersList = () => {
             <Person color="primary" /> User List
           </Typography>
           <TextField label="Search" variant="outlined" size="small" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          <FormControl size="small" sx={{ minWidth: 120 }}>
-            <InputLabel>Role</InputLabel>
-            <Select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} label="Role">
-              <MenuItem value="">All</MenuItem>
-              <MenuItem value="admin">Admin</MenuItem>
-              <MenuItem value="user">User</MenuItem>
-              <MenuItem value="coach">Coach</MenuItem>
-              <MenuItem value="client">Client</MenuItem>
-            </Select>
-          </FormControl>
         </Box>
         <Box display="flex" gap={2} flexWrap="wrap">
           <Button variant="contained" color="success" size="small" startIcon={<Download />} onClick={handleExportCSV} disabled={!selectedUsers.length}>Export</Button>
