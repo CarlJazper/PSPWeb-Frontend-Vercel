@@ -71,65 +71,65 @@ const TrainingSessions = ({ branchId }) => {
     }
   };
 
-const fetchActiveUsers = useCallback(async () => {
-  try {
-    const { data: trainings } = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
+  const fetchActiveUsers = useCallback(async () => {
+    try {
+      const { data: trainings } = await axios.post(`${baseURL}/availTrainer/get-all-trainers`, { userBranch });
 
-    const active = await Promise.all(
-      trainings.map(async ({ userId }) => {
-        try {
-          const { data } = await axios.post(`${baseURL}/availTrainer/has-active`, { userBranch });
-          const entry = data.hasActive.find((item) => item.user._id === userId._id);
-          return entry
-            ? {
+      const active = await Promise.all(
+        trainings.map(async ({ userId }) => {
+          try {
+            const { data } = await axios.post(`${baseURL}/availTrainer/has-active`, { userBranch });
+            const entry = data.hasActive.find((item) => item.user._id === userId._id);
+            return entry
+              ? {
                 user: entry.user,
                 coach: entry.coach,
                 sessions: entry.sessions || [],
                 trainingId: entry.trainingId,
               }
-            : null;
-        } catch (err) {
-          console.warn("Error checking active training for user:", userId?._id, err);
-          return null;
-        }
-      })
-    );
+              : null;
+          } catch (err) {
+            console.warn("Error checking active training for user:", userId?._id, err);
+            return null;
+          }
+        })
+      );
 
-    const filteredActive = active.filter(Boolean);
-    const sessionEvents = filteredActive.flatMap(({ user, coach, sessions }) =>
-      sessions.map((session, idx) => ({
-        title: `${coach?.name || "Unassigned"}`,
-        date: session.dateAssigned,
-        extendedProps: {
-          coach: coach?.name || "Unassigned",
-          client: user.name,
-          status: session.status,
-          time: session.timeAssigned,
-          sessionNumber: idx + 1,
-          coachEmail: coach?.email || '',
-          clientEmail: user.email || ''
-        },
-        backgroundColor: getStatusColor(session.status).bg,
-        borderColor: getStatusColor(session.status).border,
-        textColor: getStatusColor(session.status).text,
-      }))
-    );
+      const filteredActive = active.filter(Boolean);
+      const sessionEvents = filteredActive.flatMap(({ user, coach, sessions }) =>
+        sessions.map((session, idx) => ({
+          title: `${coach?.name || "Unassigned"}`,
+          date: session.dateAssigned,
+          extendedProps: {
+            coach: coach?.name || "Unassigned",
+            client: user.name,
+            status: session.status,
+            time: session.timeAssigned,
+            sessionNumber: idx + 1,
+            coachEmail: coach?.email || '',
+            clientEmail: user.email || ''
+          },
+          backgroundColor: getStatusColor(session.status).bg,
+          borderColor: getStatusColor(session.status).border,
+          textColor: getStatusColor(session.status).text,
+        }))
+      );
 
-    // Only update state if there's a change
-    if (!isEqual(filteredActive, users)) {
-      setUsers(filteredActive);
+      // Only update state if there's a change
+      if (!isEqual(filteredActive, users)) {
+        setUsers(filteredActive);
+      }
+
+      if (!isEqual(sessionEvents, events)) {
+        setEvents(sessionEvents);
+      }
+    } catch (err) {
+      console.error("Error fetching active users:", err);
+      showSnackbar("Failed to load training sessions", "error");
+    } finally {
+      setLoading(false);
     }
-
-    if (!isEqual(sessionEvents, events)) {
-      setEvents(sessionEvents);
-    }
-  } catch (err) {
-    console.error("Error fetching active users:", err);
-    showSnackbar("Failed to load training sessions", "error");
-  } finally {
-    setLoading(false);
-  }
-}, [userBranch, users, events]);
+  }, [userBranch, users, events]);
 
 
   const fetchCoaches = async () => {
@@ -170,15 +170,15 @@ const fetchActiveUsers = useCallback(async () => {
     }
   };
 
-useEffect(() => {
-  fetchActiveUsers(); // initial fetch
+  useEffect(() => {
+    fetchActiveUsers(); // initial fetch
 
-  const interval = setInterval(() => {
-    fetchActiveUsers();
-  }, 5000); // 5 seconds is more stable
+    const interval = setInterval(() => {
+      fetchActiveUsers();
+    }, 5000); // 5 seconds is more stable
 
-  return () => clearInterval(interval);
-}, [fetchActiveUsers]);
+    return () => clearInterval(interval);
+  }, [fetchActiveUsers]);
 
 
 
@@ -400,18 +400,19 @@ useEffect(() => {
                         </Box>
                       </Box>
                     ) : (
-                      <Button
-                        variant="contained"
-                        onClick={() => handleOpenModal(trainingId)}
+                      <Box
                         sx={{
+                          p: 2,
                           borderRadius: 2,
-                          textTransform: "none",
-                          py: 1.5,
-                          fontWeight: 600,
+                          bgcolor: alpha(theme.palette.warning.main, 0.05),
+                          border: `1px dashed ${alpha(theme.palette.warning.main, 0.4)}`,
+                          textAlign: "center",
                         }}
                       >
-                        Assign Coach
-                      </Button>
+                        <Typography variant="body2" color="text.secondary">
+                          No coach assigned yet.
+                        </Typography>
+                      </Box>
                     )}
                   </Box>
 
