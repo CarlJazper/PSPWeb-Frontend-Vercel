@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
-import { Box, Grid, Typography, Button, Container, Paper, keyframes } from '@mui/material';
+import { Box, Grid, Typography, Button, Container, Paper, keyframes, IconButton } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
@@ -10,6 +10,8 @@ import GroupsIcon from '@mui/icons-material/Groups';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import QrCodeIcon from '@mui/icons-material/QrCode';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
+import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
 const floatingAnimation = keyframes`
   0%, 100% { transform: translateY(0px) rotate(0deg); }
@@ -27,6 +29,36 @@ const Home = () => {
   const [fadeIn, setFadeIn] = useState(false);
   const [phoneInteraction, setPhoneInteraction] = useState(false);
   const [scanActive, setScanActive] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Carousel images
+  const carouselImages = [
+    {
+      src: "/images/gym-1.jpg",
+      title: "Lat Pull Down",
+      description: "Gym Equipments"
+    },
+    {
+      src: "/images/gym-2.jpg", 
+      title: "Matt Area",
+      description: "Gym Equipments"
+    },
+    {
+      src: "/images/gym-3.jpg",
+      title: "Pull Row Machine",
+      description: "Gym Equipments"
+    },
+    {
+      src: "/images/gym-4.jpg",
+      title: "Dumbell Rack",
+      description: "Gym Equipments"
+    },
+    {
+      src: "/images/gym-5.jpg",
+      title: "Smith Machine",
+      description: "Gym Equipments"
+    }
+  ];
 
   useEffect(() => {
     setFadeIn(true);
@@ -36,8 +68,28 @@ const Home = () => {
       setTimeout(() => setScanActive(false), 3000);
     }, 8000);
 
-    return () => clearInterval(scanInterval);
-  }, []);
+    // Auto-advance carousel
+    const carouselInterval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % carouselImages.length);
+    }, 4000);
+
+    return () => {
+      clearInterval(scanInterval);
+      clearInterval(carouselInterval);
+    };
+  }, [carouselImages.length]);
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % carouselImages.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + carouselImages.length) % carouselImages.length);
+  };
+
+  const goToSlide = (index) => {
+    setCurrentSlide(index);
+  };
 
   const fadeInUp = {
     hidden: { opacity: 0, y: 20 },
@@ -607,6 +659,183 @@ const Home = () => {
               </motion.div>
             </Grid>
           </Grid>
+        </Box>
+
+        {/* New Gym Showcase Carousel */}
+        <Box sx={{ py: { xs: 6, md: 10 } }}>
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeInUp}
+          >
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: { xs: '2.2rem', md: '3rem' },
+                fontWeight: 700,
+                mb: 6,
+                textAlign: 'center',
+                color: '#fff'
+              }}
+            >
+              Experience Our Gym
+            </Typography>
+          </motion.div>
+
+          <Box sx={{ position: 'relative', maxWidth: '1200px', mx: 'auto' }}>
+            {/* Carousel Container */}
+            <Box
+              sx={{
+                position: 'relative',
+                height: { xs: '300px', md: '500px' },
+                borderRadius: '20px',
+                overflow: 'hidden',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+              }}
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentSlide}
+                  initial={{ opacity: 0, x: 300 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -300 }}
+                  transition={{ duration: 0.5, ease: "easeInOut" }}
+                  style={{
+                    position: 'absolute',
+                    width: '100%',
+                    height: '100%',
+                  }}
+                >
+                  <Box
+                    component="img"
+                    src={carouselImages[currentSlide].src}
+                    alt={carouselImages[currentSlide].title}
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'fit',
+                    }}
+                  />
+                  
+                  {/* Overlay with gradient */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      background: 'linear-gradient(transparent, rgba(0,0,0,0.8))',
+                      p: { xs: 3, md: 4 },
+                    }}
+                  >
+                    <motion.div
+                      initial={{ y: 30, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.3, duration: 0.5 }}
+                    >
+                      <Typography
+                        variant="h4"
+                        sx={{
+                          color: '#fff',
+                          fontWeight: 700,
+                          mb: 1,
+                          fontSize: { xs: '1.5rem', md: '2rem' }
+                        }}
+                      >
+                        {carouselImages[currentSlide].title}
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          color: 'rgba(255,255,255,0.9)',
+                          fontSize: { xs: '0.9rem', md: '1.1rem' }
+                        }}
+                      >
+                        {carouselImages[currentSlide].description}
+                      </Typography>
+                    </motion.div>
+                  </Box>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Navigation Arrows */}
+              <IconButton
+                onClick={prevSlide}
+                sx={{
+                  position: 'absolute',
+                  left: { xs: 10, md: 20 },
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  color: '#fff',
+                  backdropFilter: 'blur(10px)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(78, 205, 196, 0.8)',
+                    transform: 'translateY(-50%) scale(1.1)',
+                  },
+                  transition: 'all 0.3s ease',
+                  zIndex: 2,
+                }}
+              >
+                <ArrowBackIosIcon />
+              </IconButton>
+
+              <IconButton
+                onClick={nextSlide}
+                sx={{
+                  position: 'absolute',
+                  right: { xs: 10, md: 20 },
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  backgroundColor: 'rgba(0,0,0,0.5)',
+                  color: '#fff',
+                  backdropFilter: 'blur(10px)',
+                  '&:hover': {
+                    backgroundColor: 'rgba(78, 205, 196, 0.8)',
+                    transform: 'translateY(-50%) scale(1.1)',
+                  },
+                  transition: 'all 0.3s ease',
+                  zIndex: 2,
+                }}
+              >
+                <ArrowForwardIosIcon />
+              </IconButton>
+            </Box>
+
+            {/* Carousel Indicators */}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: 1,
+                mt: 3,
+              }}
+            >
+              {carouselImages.map((_, index) => (
+                <motion.div
+                  key={index}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                >
+                  <Box
+                    onClick={() => goToSlide(index)}
+                    sx={{
+                      width: currentSlide === index ? '40px' : '12px',
+                      height: '12px',
+                      borderRadius: '6px',
+                      backgroundColor: currentSlide === index ? '#4ECDC4' : 'rgba(255,255,255,0.4)',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease',
+                      '&:hover': {
+                        backgroundColor: currentSlide === index ? '#4ECDC4' : 'rgba(255,255,255,0.7)',
+                      }
+                    }}
+                  />
+                </motion.div>
+              ))}
+            </Box>
+          </Box>
         </Box>
 
         {/* Enhanced Why Choose Us Section */}
