@@ -11,7 +11,7 @@ import {
   TablePagination, useTheme, alpha, Dialog, DialogTitle, DialogContent, DialogContentText,
   DialogActions, Fade, CircularProgress
 } from '@mui/material';
-import { Edit, Delete, Download, Person } from '@mui/icons-material';
+import { Edit, Delete, Download, Person, PersonAdd } from '@mui/icons-material';
 
 const UsersList = () => {
   const location = useLocation();
@@ -130,7 +130,7 @@ const UsersList = () => {
         </Box>
         <Box display="flex" gap={2} flexWrap="wrap">
           <Button variant="contained" color="success" size="small" startIcon={<Download />} onClick={handleExportCSV} disabled={!selectedUsers.length}>Export</Button>
-          <Button component={Link} to="/admin/client/register" variant="contained" color="primary" size="small">Add Client</Button>
+          <Button component={Link} to="/admin/client/register" variant="contained"  startIcon={<PersonAdd />} color="primary" size="small">Add Client</Button>
         </Box>
       </Box>
 

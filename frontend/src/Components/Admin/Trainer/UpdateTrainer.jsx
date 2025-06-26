@@ -10,14 +10,14 @@ import {
   Grid,
   IconButton,
   Avatar,
-  Snackbar,
-  Alert,
   CircularProgress,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import SaveIcon from "@mui/icons-material/Save";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import baseURL from "../../../utils/baseURL";
+import { toast, ToastContainer } from "react-toastify";
+import 'react-toastify/dist/ReactToastify.css';
 
 const UpdateTrainer = () => {
   const { id } = useParams();
@@ -31,18 +31,11 @@ const UpdateTrainer = () => {
   });
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success",
-  });
 
   useEffect(() => {
     const fetchTrainer = async () => {
       try {
-        const { data } = await axios.get(
-          `${baseURL}/users/get-user/${id}`
-        );
+        const { data } = await axios.get(`${baseURL}/users/get-user/${id}`);
         setTrainer({
           name: data.user.name,
           email: data.user.email,
@@ -50,11 +43,7 @@ const UpdateTrainer = () => {
         });
       } catch (error) {
         console.error("Error fetching trainer:", error);
-        setSnackbar({
-          open: true,
-          message: "Error fetching trainer details",
-          severity: "error",
-        });
+        toast.error("Error fetching trainer details");
       } finally {
         setLoading(false);
       }
@@ -90,31 +79,17 @@ const UpdateTrainer = () => {
     }
 
     try {
-      await axios.put(
-        `${baseURL}/users/update-trainer/${id}`,
-        formData,
-        { headers: { "Content-Type": "multipart/form-data" } }
-      );
-      setSnackbar({
-        open: true,
-        message: "Trainer updated successfully!",
-        severity: "success",
+      await axios.put(`${baseURL}/users/update-trainer/${id}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
       });
+      toast.success("Trainer updated successfully!");
       setTimeout(() => navigate("/admin/trainers"), 2000);
     } catch (error) {
       console.error("Error updating trainer:", error);
-      setSnackbar({
-        open: true,
-        message: "Error updating trainer",
-        severity: "error",
-      });
+      toast.error("Error updating trainer");
     } finally {
       setUpdating(false);
     }
-  };
-
-  const handleCloseSnackbar = () => {
-    setSnackbar({ ...snackbar, open: false });
   };
 
   if (loading) {
@@ -215,17 +190,6 @@ const UpdateTrainer = () => {
           </Grid>
         </form>
       </Paper>
-
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={6000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };
