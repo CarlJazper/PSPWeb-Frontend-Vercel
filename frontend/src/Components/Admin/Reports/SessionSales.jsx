@@ -167,7 +167,7 @@ const TrainingSessions = ({ branchId }) => {
   };
 
   const renderTable = (data, title) => {
-    const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
 
     return (
@@ -239,7 +239,21 @@ const TrainingSessions = ({ branchId }) => {
     </Select>
   );
 
-  if (loading) return <CircularProgress />;
+   if (loading)
+   return (
+     <Box
+       sx={{
+         display: "flex",
+         justifyContent: "center",
+         alignItems: "center",
+         height: "300px", // or "100vh" if you want full page
+         width: "100%",
+       }}
+     >
+       <CircularProgress />
+     </Box>
+   );
+ 
   if (error) return <Typography color="error">{error}</Typography>;
 
   const monthlySessions = sessions.all.filter(

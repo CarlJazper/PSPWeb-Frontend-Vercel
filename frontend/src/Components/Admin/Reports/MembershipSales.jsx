@@ -146,7 +146,21 @@ const MembershipSales = ({ branchId }) => {
     (t) => new Date(t.subscribedDate).getFullYear() === selectedYearlyYear
   );
 
-  if (loading) return <CircularProgress />;
+  if (loading)
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          height: "300px", // or "100vh" if you want full page
+          width: "100%",
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+
   if (error) return <Typography color="error">{error}</Typography>;
 
   const renderTable = (data, title) => {
