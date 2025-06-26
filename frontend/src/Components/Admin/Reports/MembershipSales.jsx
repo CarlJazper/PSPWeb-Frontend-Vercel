@@ -90,7 +90,7 @@ const MembershipSales = ({ branchId }) => {
 
         setSalesData(salesRes.data);
 
-        if (branch && user.role === "superadmin") {
+        if (branch) {
           const token = localStorage.getItem("token");
           axios
             .get(`${baseURL}/branch/get-branch/${branch}`, {

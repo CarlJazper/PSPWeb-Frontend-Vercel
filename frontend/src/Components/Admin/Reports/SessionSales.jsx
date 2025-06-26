@@ -82,7 +82,7 @@ const TrainingSessions = ({ branchId }) => {
 
         setSalesData(salesRes.data);
 
-        if (user.role === "superadmin" && userBranch) {
+        if (userBranch) {
           axios
             .get(`${baseURL}/branch/get-branch/${userBranch}`, {
               headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
