@@ -85,7 +85,7 @@ const SuperAdminDashboard = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', pt: 5 }}>
+    <Box sx={{ minHeight: '100vh', pt: 5, pb:5 }}>
       <Container maxWidth={false} disableGutters>
         {/* Branch Selector */}
         <Paper elevation={3} sx={{ p: 3, mb: 2, borderRadius: 2, mx: 3 }}>
