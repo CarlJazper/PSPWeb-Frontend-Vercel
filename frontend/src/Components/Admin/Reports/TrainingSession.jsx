@@ -23,6 +23,8 @@ import interactionPlugin from '@fullcalendar/interaction';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import { GlobalStyles } from "@mui/material";
 import isEqual from 'lodash.isequal';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 import { getUser } from "../../../utils/helpers";
 
@@ -40,6 +42,7 @@ const TrainingSessions = ({ branchId }) => {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [branchName, setBranchName] = useState("Unknown Branch");
 
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -131,7 +134,6 @@ const TrainingSessions = ({ branchId }) => {
     }
   }, [userBranch, users, events]);
 
-
   const fetchCoaches = async () => {
     try {
       const { data } = await axios.get(`${baseURL}/users/get-all-users?role=coach`);
@@ -141,6 +143,25 @@ const TrainingSessions = ({ branchId }) => {
       showSnackbar("Failed to load coaches", "error");
     }
   };
+
+  useEffect(() => {
+    const fetchBranchName = async () => {
+      if (!userBranch) return;
+      try {
+        const token = localStorage.getItem("token");
+        const { data } = await axios.get(`${baseURL}/branch/get-branch/${userBranch}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setBranchName(data.branch.name);
+      } catch (err) {
+        console.error("Failed to fetch branch name:", err);
+        setBranchName("Unknown Branch");
+      }
+    };
+
+    fetchBranchName();
+  }, [userBranch]);
+
   const handleOpenModal = (id) => {
     setSelectedUserId(id);
     setOpenModal(true);
@@ -180,7 +201,216 @@ const TrainingSessions = ({ branchId }) => {
     return () => clearInterval(interval);
   }, [fetchActiveUsers]);
 
+  const coachClientCount = users.reduce((acc, { coach }) => {
+    if (coach && coach._id) {
+      acc[coach._id] = acc[coach._id] || { ...coach, count: 0 };
+      acc[coach._id].count += 1;
+    }
+    return acc;
+  }, {});
 
+  const sortedCoaches = Object.values(coachClientCount).sort((a, b) => b.count - a.count);
+  let mostCoach = null;
+  let leastCoach = null;
+
+  if (sortedCoaches.length > 1) {
+    mostCoach = sortedCoaches[0];
+    // Ensure leastCoach is not the same as mostCoach and has different count
+    leastCoach = sortedCoaches.find(
+      c => c._id !== mostCoach._id && c.count !== mostCoach.count
+    ) || sortedCoaches[sortedCoaches.length - 1];
+  } else if (sortedCoaches.length === 1) {
+    mostCoach = leastCoach = sortedCoaches[0];
+  }
+
+  const generateCoachStatsPDF = () => {
+    const doc = new jsPDF();
+    const currentDate = new Date().toLocaleString();
+    const currentBranchName = branchName || "Unknown Branch";
+
+    // PDF Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("Coach Session Statistics", 105, 22, { align: "center" });
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    doc.setTextColor(100); // Muted text color for sub-header
+    doc.text(`Branch: ${currentBranchName}`, 14, 32);
+    doc.text(`Generated on: ${currentDate}`, 14, 38);
+    doc.setLineWidth(0.3);
+    doc.line(14, 42, 196, 42); // Horizontal line
+
+    if (!mostCoach) {
+      doc.setFontSize(12);
+      doc.setTextColor(0);
+      doc.text("No coach data available to generate statistics.", 105, 60, { align: "center" });
+      doc.save("coach-session-stats.pdf");
+      return;
+    }
+
+    if (sortedCoaches.length > 1) {
+      mostCoach = sortedCoaches[0];
+      leastCoach =
+        sortedCoaches.find(
+          (c) => c._id !== mostCoach._id && c.count !== mostCoach.count
+        ) || mostCoach;
+    } else if (sortedCoaches.length === 1) {
+      mostCoach = leastCoach = sortedCoaches[0];
+    }
+
+    const getCoachClientSummary = (coachId) => {
+      const clients = users.filter((u) => u.coach?._id === coachId);
+      const summary = {};
+
+      clients.forEach(({ user, sessions }) => {
+        const key = user.email;
+        if (!summary[key]) {
+          summary[key] = {
+            name: user.name,
+            email: user.email,
+            total: 0,
+            pending: 0,
+            completed: 0,
+            waiting: 0,
+          };
+        }
+        (sessions || []).forEach((session) => {
+          const status = session.status || "pending";
+          summary[key].total++;
+          if (status === "pending") summary[key].pending++;
+          else if (status === "completed") summary[key].completed++;
+          else if (status === "waiting") summary[key].waiting++;
+        });
+      });
+
+      return Object.values(summary);
+    };
+
+    const getSessionTotals = (summary) => {
+      return summary.reduce(
+        (acc, curr) => {
+          acc.total += curr.total;
+          acc.pending += curr.pending;
+          acc.completed += curr.completed;
+          acc.waiting += curr.waiting;
+          return acc;
+        },
+        { total: 0, pending: 0, completed: 0, waiting: 0 }
+      );
+    };
+
+    const mostSummary = getCoachClientSummary(mostCoach._id);
+    const mostTotals = getSessionTotals(mostSummary);
+
+    let tableBody = [
+      [
+        "Most Assigned",
+        mostCoach.name,
+        mostCoach.email,
+        mostCoach.count,
+        mostTotals.total,
+        mostTotals.pending,
+        mostTotals.completed,
+        mostTotals.waiting,
+      ],
+    ];
+
+    let leastSummary = [];
+    let leastTotals = {};
+
+    const hasDistinctLeast =
+      leastCoach && leastCoach._id !== mostCoach._id;
+
+    if (hasDistinctLeast) {
+      leastSummary = getCoachClientSummary(leastCoach._id);
+      leastTotals = getSessionTotals(leastSummary);
+      tableBody.push([
+        "Least Assigned",
+        leastCoach.name,
+        leastCoach.email,
+        leastCoach.count,
+        leastTotals.total,
+        leastTotals.pending,
+        leastTotals.completed,
+        leastTotals.waiting,
+      ]);
+    }
+
+    // Summary coach table
+    autoTable(doc, {
+      startY: 50,
+      head: [["Coach Type", "Name", "Email", "Clients", "Total Sessions", "Total Pending", "Total Completed", "Total Waiting"]],
+      body: tableBody,
+      theme: 'grid',
+      styles: { fontSize: 9 },
+      headStyles: {
+        fillColor: [63, 81, 181],
+        textColor: 255,
+        halign: "center",
+        fontStyle: 'bold'
+      },
+      columnStyles: {
+        0: { halign: "left", cellWidth: 28 },
+        1: { halign: "left", cellWidth: 30 },
+        2: { halign: "left", cellWidth: 42 },
+        3: { halign: "center" },
+        4: { halign: "center" },
+        5: { halign: "center" },
+        6: { halign: "center" },
+        7: { halign: "center" },
+      },
+    });
+
+    const renderClientSummary = (title, coachName, summary, startY) => {
+      if (summary.length === 0) return startY;
+
+      doc.setFontSize(14);
+      doc.setFont("helvetica", "bold");
+      doc.setTextColor(0);
+      doc.text(`${title}: ${coachName}`, 14, startY);
+
+      autoTable(doc, {
+        startY: startY + 7,
+        head: [["Client", "Email", "Total", "Pending", "Completed", "Waiting"]],
+        styles: { fontSize: 9 }, // 👈 Smaller font size
+        body: summary.map((s) => [
+          s.name,
+          s.email,
+          s.total,
+          s.pending,
+          s.completed,
+          s.waiting,
+        ]),
+        theme: 'striped',
+        headStyles: {
+          fillColor: [84, 110, 122],
+          textColor: 255,
+          halign: "center",
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { halign: "center", cellWidth: 40 },
+          1: { halign: "center", cellWidth: 55 },
+          2: { halign: "center" },
+          3: { halign: "center" },
+          4: { halign: "center" },
+          5: { halign: "center" },
+        },
+      });
+      return doc.lastAutoTable.finalY;
+    };
+
+    let currentY = doc.lastAutoTable.finalY + 15;
+    const nextY = renderClientSummary("Sessions for Most Assigned Coach", mostCoach.name, mostSummary, currentY);
+
+    if (hasDistinctLeast) {
+      currentY = nextY + 15;
+      renderClientSummary("Sessions for Least Assigned Coach", leastCoach.name, leastSummary, currentY);
+    }
+
+    doc.save(`Training Session Reports - ${branchName || "AllBranches"}.pdf`);
+  };
 
   if (loading) {
     return (
@@ -325,7 +555,66 @@ const TrainingSessions = ({ branchId }) => {
         }}
       />
 
+
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        {sortedCoaches.length > 1 && mostCoach && leastCoach && (
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            {/* Most Assigned Coach */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ p: 3, borderLeft: '6px solid #4caf50', borderRadius: 3, background: '#e8f5e9' }}>
+                <Typography variant="h6" fontWeight={700}>
+                  🏆 Most Assigned Coach
+                </Typography>
+                <Typography variant="subtitle1">
+                  {mostCoach.name} — {mostCoach.count} client{mostCoach.count > 1 ? 's' : ''}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {mostCoach.email}
+                </Typography>
+              </Card>
+            </Grid>
+
+            {/* Least Assigned Coach */}
+            <Grid item xs={12} md={6}>
+              <Card sx={{ p: 3, borderLeft: '6px solid #ff9800', borderRadius: 3, background: '#fff8e1' }}>
+                <Typography variant="h6" fontWeight={700}>
+                  🐢 Least Assigned Coach
+                </Typography>
+                <Typography variant="subtitle1">
+                  {leastCoach.name} — {leastCoach.count} client{leastCoach.count > 1 ? 's' : ''}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {leastCoach.email}
+                </Typography>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+
+        {sortedCoaches.length === 1 && (
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12}>
+              <Card sx={{ p: 3, borderLeft: '6px solid #90caf9', borderRadius: 3, background: '#e3f2fd' }}>
+                <Typography variant="h6" fontWeight={700}>
+                  🧑‍🏫 Only One Coach Assigned
+                </Typography>
+                <Typography variant="subtitle1">
+                  {sortedCoaches[0].name} — {sortedCoaches[0].count} client{sortedCoaches[0].count > 1 ? 's' : ''}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {sortedCoaches[0].email}
+                </Typography>
+              </Card>
+            </Grid>
+          </Grid>
+        )}
+
+
+        <Button variant="contained" color="primary" onClick={generateCoachStatsPDF}>
+          Download Coach Stats PDF
+        </Button>
+
+
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 700 }}>
             Active Training Sessions

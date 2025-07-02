@@ -37,7 +37,7 @@ import autoTable from "jspdf-autotable";
 
 const MembershipSales = ({ branchId }) => {
   const user = getUser();
-  const branch = branchId || user.userBranch
+  const branch = branchId || user.userBranch;
   const [salesData, setSalesData] = useState(null);
   const [transactions, setTransactions] = useState({ today: [], all: [], years: [] });
   const [selectedMonthYear, setSelectedMonthYear] = useState({
@@ -51,7 +51,7 @@ const MembershipSales = ({ branchId }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [branchName, setBranchName] = useState("");
-
+  const [promoFilter, setPromoFilter] = useState("all"); // ✅ New
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-PH", {
@@ -65,7 +65,7 @@ const MembershipSales = ({ branchId }) => {
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
-        const body = branch ? { userBranch: branch } : {}; // ❗important
+        const body = branch ? { userBranch: branch } : {};
         const token = localStorage.getItem("token");
         const [salesRes, transRes] = await Promise.all([
           axios.post(`${baseURL}/transaction/membership-sales-stats`, body, {
@@ -91,19 +91,13 @@ const MembershipSales = ({ branchId }) => {
         setSalesData(salesRes.data);
 
         if (branch) {
-          const token = localStorage.getItem("token");
           axios
             .get(`${baseURL}/branch/get-branch/${branch}`, {
               headers: { Authorization: `Bearer ${token}` },
             })
-            .then((res) => {
-              setBranchName(res.data.branch.name); // adjust based on actual response structure
-            })
-            .catch(() => {
-              setBranchName("Unknown Branch");
-            });
+            .then((res) => setBranchName(res.data.branch.name))
+            .catch(() => setBranchName("Unknown Branch"));
         }
-
 
       } catch (err) {
         setError("Failed to fetch membership sales data");
@@ -113,7 +107,7 @@ const MembershipSales = ({ branchId }) => {
     };
 
     fetchSalesData();
-    const interval = setInterval(fetchSalesData, 2000); // ✅ FIXED
+    const interval = setInterval(fetchSalesData, 2000);
     return () => clearInterval(interval);
   }, [branch]);
 
@@ -148,15 +142,7 @@ const MembershipSales = ({ branchId }) => {
 
   if (loading)
     return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "300px", // or "100vh" if you want full page
-          width: "100%",
-        }}
-      >
+      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "300px", width: "100%" }}>
         <CircularProgress />
       </Box>
     );
@@ -164,13 +150,30 @@ const MembershipSales = ({ branchId }) => {
   if (error) return <Typography color="error">{error}</Typography>;
 
   const renderTable = (data, title) => {
-    const paginatedData = data.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+    const filteredData = data.filter((t) => {
+      if (promoFilter === "with") return !!t.promo;
+      if (promoFilter === "none") return !t.promo;
+      return true;
+    });
+
+    const sortedData = [...filteredData].sort(
+      (a, b) => new Date(b.subscribedDate) - new Date(a.subscribedDate)
+    );
+
+    const paginatedData = sortedData.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
     return (
       <>
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 3 }}>
           <Typography variant="h6">{title}</Typography>
-          <Button variant="outlined" onClick={() => setViewMode("chart")}>Back to Chart</Button>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Select size="small" value={promoFilter} onChange={(e) => setPromoFilter(e.target.value)}>
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="with">With Promo</MenuItem>
+              <MenuItem value="none">No Promo</MenuItem>
+            </Select>
+            <Button variant="outlined" onClick={() => setViewMode("chart")}>Back to Chart</Button>
+          </Box>
         </Box>
 
         <TableContainer component={Paper} sx={{ mb: 1, mt: 1 }}>
@@ -182,6 +185,7 @@ const MembershipSales = ({ branchId }) => {
                 <TableCell>Email</TableCell>
                 <TableCell>Amount</TableCell>
                 <TableCell>Type</TableCell>
+                <TableCell>Promo</TableCell>
                 <TableCell>Date</TableCell>
               </TableRow>
             </TableHead>
@@ -194,6 +198,13 @@ const MembershipSales = ({ branchId }) => {
                   <TableCell>{formatCurrency(t.amount)}</TableCell>
                   <TableCell>{t.transactionType}</TableCell>
                   <TableCell>
+                    {t.promo ? (
+                      <span style={{ color: "green" }}>{t.promo}</span>
+                    ) : (
+                      <span style={{ color: "gray", fontStyle: "italic" }}>No Promo</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
                     {new Date(t.subscribedDate).toLocaleString("en-PH", {
                       timeZone: "Asia/Manila",
                       year: "numeric",
@@ -204,7 +215,7 @@ const MembershipSales = ({ branchId }) => {
                 </TableRow>
               )) : (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">No transactions</TableCell>
+                  <TableCell colSpan={7} align="center">No transactions</TableCell>
                 </TableRow>
               )}
             </TableBody>
@@ -213,7 +224,7 @@ const MembershipSales = ({ branchId }) => {
 
         <TablePagination
           component="div"
-          count={data.length}
+          count={filteredData.length}
           page={page}
           onPageChange={(e, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
@@ -226,7 +237,6 @@ const MembershipSales = ({ branchId }) => {
       </>
     );
   };
-
 
   const renderYearSelector = (value, onChange) => (
     <Select value={value} onChange={(e) => onChange(+e.target.value)} size="small">
@@ -260,6 +270,7 @@ const MembershipSales = ({ branchId }) => {
       t.userId?.email || "N/A",
       formatCurrency(t.amount),
       t.transactionType,
+      t.promo || "Did not avail a promo",
       new Date(t.subscribedDate).toLocaleDateString("en-PH", {
         year: "numeric",
         month: "short",
@@ -269,7 +280,7 @@ const MembershipSales = ({ branchId }) => {
 
     autoTable(doc, {
       startY: 40,
-      head: [["ID", "Name", "Email", "Amount", "Type", "Date"]],
+      head: [["ID", "Name", "Email", "Amount", "Type", "Promo", "Date"]],
       body: tableData,
       styles: { fontSize: 8 },
     });
@@ -283,7 +294,6 @@ const MembershipSales = ({ branchId }) => {
 
   return (
     <Grid container spacing={2}>
-      {/* Summary Cards */}
       {["today", "monthly", "yearly"].map((mode) => (
         <Grid item xs={12} sm={4} key={mode}>
           <Card onClick={() => setViewMode(mode)} sx={{ cursor: "pointer" }}>
@@ -300,9 +310,7 @@ const MembershipSales = ({ branchId }) => {
         </Grid>
       ))}
 
-      {/* Chart View */}
       {viewMode === "chart" && (
-
         <Grid item xs={12}>
           <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
             <Button variant="contained" color="primary" onClick={exportToPDF}>
@@ -339,14 +347,12 @@ const MembershipSales = ({ branchId }) => {
         </Grid>
       )}
 
-      {/* Today Transactions */}
       {viewMode === "today" && (
         <Grid item xs={12}>
           {renderTable(transactions.today, "Today's Transactions")}
         </Grid>
       )}
 
-      {/* Monthly Transactions */}
       {viewMode === "monthly" && (
         <Grid item xs={12}>
           <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
@@ -368,9 +374,7 @@ const MembershipSales = ({ branchId }) => {
             </Select>
           </Box>
           <Box sx={{ mb: 2, p: 2, backgroundColor: "#f5f5f5", borderRadius: 2, border: "1px solid #e0e0e0" }}>
-            <Typography variant="subtitle2" color="textSecondary">
-              Total Sales for the Month of
-            </Typography>
+            <Typography variant="subtitle2" color="textSecondary">Total Sales for the Month of</Typography>
             <Typography variant="h6" color="primary">
               {getMonthName(selectedMonthYear.month - 1, "long")} {selectedMonthYear.year}:{" "}
               {formatCurrency(monthlyTransactions.reduce((sum, t) => sum + t.amount, 0))}
@@ -380,7 +384,6 @@ const MembershipSales = ({ branchId }) => {
         </Grid>
       )}
 
-      {/* Yearly Transactions */}
       {viewMode === "yearly" && (
         <Grid item xs={12}>
           <Box sx={{ mb: 2 }}>{renderYearSelector(selectedYearlyYear, setSelectedYearlyYear)}</Box>
