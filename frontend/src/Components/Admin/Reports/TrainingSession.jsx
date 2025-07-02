@@ -563,7 +563,7 @@ const TrainingSessions = ({ branchId }) => {
             <Grid item xs={12} md={6}>
               <Card sx={{ p: 3, borderLeft: '6px solid #4caf50', borderRadius: 3, background: '#e8f5e9' }}>
                 <Typography variant="h6" fontWeight={700}>
-                  🏆 Most Assigned Coach
+                  Most Assigned Coach
                 </Typography>
                 <Typography variant="subtitle1">
                   {mostCoach.name} — {mostCoach.count} client{mostCoach.count > 1 ? 's' : ''}
@@ -578,7 +578,7 @@ const TrainingSessions = ({ branchId }) => {
             <Grid item xs={12} md={6}>
               <Card sx={{ p: 3, borderLeft: '6px solid #ff9800', borderRadius: 3, background: '#fff8e1' }}>
                 <Typography variant="h6" fontWeight={700}>
-                  🐢 Least Assigned Coach
+                  Least Assigned Coach
                 </Typography>
                 <Typography variant="subtitle1">
                   {leastCoach.name} — {leastCoach.count} client{leastCoach.count > 1 ? 's' : ''}
@@ -596,7 +596,7 @@ const TrainingSessions = ({ branchId }) => {
             <Grid item xs={12}>
               <Card sx={{ p: 3, borderLeft: '6px solid #90caf9', borderRadius: 3, background: '#e3f2fd' }}>
                 <Typography variant="h6" fontWeight={700}>
-                  🧑‍🏫 Only One Coach Assigned
+                  Only One Coach Assigned
                 </Typography>
                 <Typography variant="subtitle1">
                   {sortedCoaches[0].name} — {sortedCoaches[0].count} client{sortedCoaches[0].count > 1 ? 's' : ''}

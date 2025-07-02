@@ -349,9 +349,37 @@ const MembershipSales = ({ branchId }) => {
 
       {viewMode === "today" && (
         <Grid item xs={12}>
+          <Box
+            sx={{
+              mb: 2,
+              p: 2,
+              backgroundColor: "#f5f5f5",
+              borderRadius: 2,
+              border: "1px solid #e0e0e0",
+            }}
+          >
+            <Typography variant="subtitle2" color="textSecondary">Total Daily Sales</Typography>
+            <Typography variant="body1" color="primary">
+              With Promo:{" "}
+              {formatCurrency(
+                transactions.today
+                  .filter((t) => t.promo)
+                  .reduce((sum, t) => sum + t.amount, 0)
+              )}
+            </Typography>
+            <Typography variant="body1" color="primary">
+              Without Promo:{" "}
+              {formatCurrency(
+                transactions.today
+                  .filter((t) => !t.promo)
+                  .reduce((sum, t) => sum + t.amount, 0)
+              )}
+            </Typography>
+          </Box>
           {renderTable(transactions.today, "Today's Transactions")}
         </Grid>
       )}
+
 
       {viewMode === "monthly" && (
         <Grid item xs={12}>
