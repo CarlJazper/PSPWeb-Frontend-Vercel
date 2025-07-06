@@ -224,7 +224,7 @@ const Home = () => {
               <Typography
                 variant="h1"
                 sx={{
-                  fontSize: { xs: '2.8rem', sm: '3.5rem', md: '4rem', lg: '4.5rem' },
+                  fontSize: { xs: '2.8rem', sm: '3.5rem', md: '4rem', lg: '4rem' },
                   fontWeight: 800,
                   background: 'linear-gradient(45deg, #FF8E53, #FF6B6B, #4ECDC4)',
                   WebkitBackgroundClip: 'text',

@@ -43,6 +43,10 @@ const TrainingSessions = ({ branchId }) => {
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [branchName, setBranchName] = useState("Unknown Branch");
+  const [clientModalOpen, setClientModalOpen] = useState(false);
+  const [selectedCoachClients, setSelectedCoachClients] = useState([]);
+  const [selectedCoachName, setSelectedCoachName] = useState('');
+
 
   const showSnackbar = (message, severity = "success") => {
     setSnackbar({ open: true, message, severity });
@@ -166,6 +170,13 @@ const TrainingSessions = ({ branchId }) => {
     setSelectedUserId(id);
     setOpenModal(true);
     fetchCoaches();
+  };
+
+  const handleOpenClientModal = (coach) => {
+    const summary = getCoachClientSummaryForModal(coach._id);
+    setSelectedCoachClients(summary);
+    setSelectedCoachName(coach.name);
+    setClientModalOpen(true);
   };
 
   const handleAssignCoach = async () => {
@@ -412,6 +423,34 @@ const TrainingSessions = ({ branchId }) => {
     doc.save(`Training Session Reports - ${branchName || "AllBranches"}.pdf`);
   };
 
+  const getCoachClientSummaryForModal = (coachId) => {
+    const clients = users.filter((u) => u.coach?._id === coachId);
+    const summary = {};
+
+    clients.forEach(({ user, sessions }) => {
+      const key = user.email;
+      if (!summary[key]) {
+        summary[key] = {
+          name: user.name,
+          email: user.email,
+          total: 0,
+          pending: 0,
+          completed: 0,
+          waiting: 0,
+        };
+      }
+      (sessions || []).forEach((session) => {
+        const status = session.status || "pending";
+        summary[key].total++;
+        if (status === "pending") summary[key].pending++;
+        else if (status === "completed") summary[key].completed++;
+        else if (status === "waiting") summary[key].waiting++;
+      });
+    });
+
+    return Object.values(summary);
+  };
+
   if (loading) {
     return (
       <Box
@@ -555,13 +594,27 @@ const TrainingSessions = ({ branchId }) => {
         }}
       />
 
+      <Button variant="contained" color="primary" onClick={generateCoachStatsPDF}>
+        Download Coach Stats PDF
+      </Button>
 
       <Container maxWidth="lg" sx={{ py: 4 }}>
         {sortedCoaches.length > 1 && mostCoach && leastCoach && (
           <Grid container spacing={3} sx={{ mb: 4 }}>
             {/* Most Assigned Coach */}
             <Grid item xs={12} md={6}>
-              <Card sx={{ p: 3, borderLeft: '6px solid #4caf50', borderRadius: 3, background: '#e8f5e9' }}>
+              <Card
+                onClick={() => handleOpenClientModal(mostCoach)}
+                sx={{
+                  cursor: "pointer",
+                  '&:hover': { boxShadow: 6 },
+                  p: 3,
+                  borderLeft: '6px solid #4caf50',
+                  borderRadius: 3,
+                  background: '#e8f5e9'
+                }}
+              >
+
                 <Typography variant="h6" fontWeight={700}>
                   Most Assigned Coach
                 </Typography>
@@ -576,7 +629,18 @@ const TrainingSessions = ({ branchId }) => {
 
             {/* Least Assigned Coach */}
             <Grid item xs={12} md={6}>
-              <Card sx={{ p: 3, borderLeft: '6px solid #ff9800', borderRadius: 3, background: '#fff8e1' }}>
+              <Card
+                onClick={() => handleOpenClientModal(leastCoach)}
+                sx={{
+                  cursor: "pointer",
+                  '&:hover': { boxShadow: 6 },
+                  p: 3,
+                  borderLeft: '6px solid #ff9800',
+                  borderRadius: 3,
+                  background: '#e8f5e9'
+                }}
+              >
+
                 <Typography variant="h6" fontWeight={700}>
                   Least Assigned Coach
                 </Typography>
@@ -594,7 +658,18 @@ const TrainingSessions = ({ branchId }) => {
         {sortedCoaches.length === 1 && (
           <Grid container spacing={3} sx={{ mb: 4 }}>
             <Grid item xs={12}>
-              <Card sx={{ p: 3, borderLeft: '6px solid #90caf9', borderRadius: 3, background: '#e3f2fd' }}>
+              <Card
+                onClick={() => handleOpenClientModal(sortedCoaches[0])}
+                sx={{
+                  cursor: "pointer",
+                  '&:hover': { boxShadow: 6 },
+                  p: 3,
+                  borderLeft: '6px solid #4caf50',
+                  borderRadius: 3,
+                  background: '#e8f5e9'
+                }}
+              >
+
                 <Typography variant="h6" fontWeight={700}>
                   Only One Coach Assigned
                 </Typography>
@@ -609,11 +684,33 @@ const TrainingSessions = ({ branchId }) => {
           </Grid>
         )}
 
-
-        <Button variant="contained" color="primary" onClick={generateCoachStatsPDF}>
-          Download Coach Stats PDF
-        </Button>
-
+        <Dialog open={clientModalOpen} onClose={() => setClientModalOpen(false)} maxWidth="sm" fullWidth>
+          <DialogTitle>
+            Clients Assigned to {selectedCoachName}
+            <IconButton
+              aria-label="close"
+              onClick={() => setClientModalOpen(false)}
+              sx={{ position: 'absolute', right: 8, top: 8 }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent dividers>
+            {selectedCoachClients.length === 0 ? (
+              <Typography>No clients assigned.</Typography>
+            ) : (
+              selectedCoachClients.map((client, index) => (
+                <Paper key={index} sx={{ p: 2, mb: 1 }}>
+                  <Typography fontWeight={600}>{client.name}</Typography>
+                  <Typography variant="body2" color="text.secondary">{client.email}</Typography>
+                  <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                    Sessions: {client.total}, Pending: {client.pending}, Completed: {client.completed}, Waiting: {client.waiting}
+                  </Typography>
+                </Paper>
+              ))
+            )}
+          </DialogContent>
+        </Dialog>
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 4 }}>
           <Typography variant="h4" sx={{ fontWeight: 700 }}>

@@ -159,19 +159,31 @@ const LogCharts = ({ branchId }) => {
 
     const fetchTrainingStats = async () => {
         try {
-            const res = await axios.post(`${baseURL}/availTrainer/training-usage-stats`, { userBranch: branch });
-            setTrainingStats(res.data);
+            const body = { userBranch: branch };
+
+            const [trainingRes, typeRes] = await Promise.all([
+                axios.post(`${baseURL}/availTrainer/training-usage-stats`, body),
+                axios.post(`${baseURL}/availTrainer/training-type-stats`, body)
+            ]);
+
+            setTrainingStats({
+                allStats: trainingRes.data.allStats,
+                mostUsed: trainingRes.data.mostUsed,
+                leastUsed: trainingRes.data.leastUsed,
+                typeStats: typeRes.data.typeStats,
+            });
+
         } catch (err) {
             console.error("Training stats error:", err);
         } finally {
             setLoadingStats(false);
         }
     };
+
     useEffect(() => {
-        fetchTrainingStats();
-        const interval = setInterval(fetchTrainingStats, 2000);
-        return () => clearInterval(interval);
+        fetchTrainingStats(); // Only fetch once per branch change
     }, [branch]);
+
 
     if (loadingStats) {
         return (
@@ -360,6 +372,7 @@ const LogCharts = ({ branchId }) => {
                                             tick={{ fontSize: 11, fill: COLORS.gray }}
                                         />
                                         <YAxis
+                                            allowDecimals={false}
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fontSize: 12, fill: COLORS.gray }}
@@ -449,6 +462,7 @@ const LogCharts = ({ branchId }) => {
                                         <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} opacity={0.3} />
                                         <XAxis
                                             type="number"
+                                            allowDecimals={false}
                                             axisLine={false}
                                             tickLine={false}
                                             tick={{ fontSize: 12, fill: COLORS.gray }}
@@ -581,6 +595,50 @@ const LogCharts = ({ branchId }) => {
                             </Card>
                         </Grid>
                     )}
+                    {trainingStats?.typeStats?.length > 0 && (
+                        <Grid item xs={12} md={6}>
+                            <Card sx={{
+                                borderRadius: '16px',
+                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                                height: '100%'
+                            }}>
+                                <CardContent sx={{ p: 4 }}>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            fontWeight: 600,
+                                            color: COLORS.darkGray,
+                                            mb: 3
+                                        }}
+                                    >
+                                        Training Type Distribution
+                                    </Typography>
+                                    <ResponsiveContainer width="100%" height={280}>
+                                        <PieChart>
+                                            <Pie
+                                                data={trainingStats.typeStats}
+                                                dataKey="count"
+                                                nameKey="_id"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={100}
+                                                innerRadius={40}
+                                                paddingAngle={3}
+                                                label={({ _id }) => _id}
+                                            >
+                                                {trainingStats.typeStats.map((_, index) => (
+                                                    <Cell key={`cell-type-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                                ))}
+                                            </Pie>
+                                            <Tooltip content={<CustomTooltip />} />
+                                            <Legend wrapperStyle={{ fontSize: '14px', fontWeight: 500 }} />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    )}
+
                 </Grid>
             </Container>
         </Box>

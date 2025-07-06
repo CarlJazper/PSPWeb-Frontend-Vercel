@@ -146,6 +146,7 @@ const UsersList = () => {
                   <TableCell sx={{ fontWeight: 600 }}>Id</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Age</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Role</TableCell>
                   <TableCell sx={{ fontWeight: 600 }} align="center">Actions</TableCell>
                 </TableRow>
@@ -159,6 +160,7 @@ const UsersList = () => {
                     <TableCell>{user._id.slice(-6)}</TableCell>
                     <TableCell>{user.name}</TableCell>
                     <TableCell>{user.email}</TableCell>
+                    <TableCell>{user.age ?? 'N/A'}</TableCell>
                     <TableCell>{user.role}</TableCell>
                     <TableCell align="center">
                       {user.role !== 'superadmin' && (
