@@ -6,7 +6,6 @@ import { format, parseISO, differenceInMinutes } from 'date-fns';
 import baseURL from "../../../utils/baseURL";
 import { getUser } from '../../../utils/helpers';
 
-// Color palette
 const COLORS = {
     primary: "#007AFF", secondary: "#5856D6", success: "#34C759", warning: "#FF9500", error: "#FF3B30", purple: "#AF52DE",
     pink: "#FF2D92", indigo: "#5856D6", teal: "#5AC8FA", gray: "#8E8E93", lightGray: "#F2F2F7", darkGray: "#1C1C1E"
@@ -49,11 +48,9 @@ const CustomTooltip = ({ active, payload, label }) => {
     return null;
 };
 
-
 const LogCharts = ({ branchId }) => {
     const user = getUser();
     const branch = branchId || user.userBranch;
-
     const [logs, setLogs] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -64,6 +61,7 @@ const LogCharts = ({ branchId }) => {
     const [activeInactiveData, setActiveInactiveData] = useState([]);
     const [trainingStats, setTrainingStats] = useState(null);
     const [loadingStats, setLoadingStats] = useState(true);
+    const [genderStats, setGenderStats] = useState([]);
 
     useEffect(() => {
         const fetchData = async () => {
@@ -90,6 +88,7 @@ const LogCharts = ({ branchId }) => {
         const interval = setInterval(fetchData, 2000);
         return () => clearInterval(interval);
     }, [branch]);
+
     useEffect(() => {
         if (logs.length > 0 && users.length > 0) {
             // 1. Daily Activity
@@ -154,7 +153,21 @@ const LogCharts = ({ branchId }) => {
                 { name: "Currently Active", value: activeUsers },
                 { name: "Checked Out", value: inactiveUsers }
             ]);
+            // 6. Gender Statistics
+            const genderCount = users.reduce((acc, user) => {
+                const gender = user.gender || "Unknown";
+                acc[gender] = (acc[gender] || 0) + 1;
+                return acc;
+            }, {});
+
+            const genderData = Object.entries(genderCount).map(([gender, count]) => ({
+                name: gender,
+                value: count
+            }));
+
+            setGenderStats(genderData);
         }
+
     }, [logs, users]);
 
     const fetchTrainingStats = async () => {
@@ -183,7 +196,6 @@ const LogCharts = ({ branchId }) => {
     useEffect(() => {
         fetchTrainingStats(); // Only fetch once per branch change
     }, [branch]);
-
 
     if (loadingStats) {
         return (
@@ -638,7 +650,62 @@ const LogCharts = ({ branchId }) => {
                             </Card>
                         </Grid>
                     )}
+                    {genderStats.length > 0 && (
+                        <Grid item xs={12} md={6}>
+                            <Card sx={{
+                                borderRadius: '16px',
+                                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                                height: '100%'
+                            }}>
+                                <CardContent sx={{ p: 4 }}>
+                                    <Typography
+                                        variant="h6"
+                                        sx={{
+                                            fontWeight: 600,
+                                            color: COLORS.darkGray,
+                                            mb: 3
+                                        }}
+                                    >
+                                        Gender Distribution
+                                    </Typography>
+                                    <ResponsiveContainer width="100%" height={280}>
+                                        <PieChart>
+                                            <Pie
+                                                data={genderStats}
+                                                dataKey="value"
+                                                nameKey="name"
+                                                cx="50%"
+                                                cy="50%"
+                                                outerRadius={100}
+                                                innerRadius={40}
+                                                paddingAngle={5}
+                                                label={({ name }) => name}
+                                            >
+                                                {genderStats.map((entry, index) => (
+                                                    <Cell
+                                                        key={`cell-gender-${index}`}
+                                                        fill={
+                                                            entry.name.toLowerCase() === 'female' ? COLORS.pink :
+                                                                entry.name.toLowerCase() === 'male' ? COLORS.primary :
+                                                                    COLORS.gray
+                                                        }
+                                                    />
+                                                ))}
 
+                                            </Pie>
+                                            <Tooltip content={<CustomTooltip />} />
+                                            <Legend
+                                                wrapperStyle={{
+                                                    fontSize: '14px',
+                                                    fontWeight: 500
+                                                }}
+                                            />
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    )}
                 </Grid>
             </Container>
         </Box>

@@ -12,7 +12,7 @@ import TrainerList from '../Trainer/TrainerList';
 import MembershipSales from './MembershipSales';
 import SessionSales from './SessionSales';
 import AgeDemographic from './AgeDemographic';
-
+import TrainingDemographics from './TrainingDemographics';
 const StatCard = ({ title, subheader, count, icon, color, onClick }) => (
     <Grid item xs={12} sm={6} md={4}>
         <Card
@@ -58,6 +58,10 @@ const Overview = () => {
     const [ageData, setAgeData] = useState({});
     const [branchList, setBranchList] = useState([]);
     const [selectedBranch, setSelectedBranch] = useState("");
+
+    const [openTrainingDemoModal, setOpenTrainingDemoModal] = useState(false);
+    const [trainingDemoData, setTrainingDemoData] = useState([]);
+
 
     useEffect(() => {
         const user = getUser();
@@ -113,6 +117,17 @@ const Overview = () => {
         }
     };
 
+    const fetchTrainingDemographics = async () => {
+        try {
+            const config = { headers: { Authorization: `Bearer ${getToken()}` } };
+            const res = await axios.post(`${baseURL}/availTrainer/training-demographics`, {}, config);
+            setTrainingDemoData(res.data?.demographics || []);
+        } catch (err) {
+            console.error("Failed to fetch training demographics:", err);
+        }
+    };
+
+
     if (!userLoaded || !currentUser || currentUser.role !== 'superadmin') return null;
 
     return (
@@ -138,6 +153,18 @@ const Overview = () => {
                             setSelectedBranch("");
                             setOpenAgeModal(true);
                         }} />
+                        <StatCard
+                            title="Training Demographics"
+                            subheader="Top gender & age for training types"
+                            count="See Breakdown"
+                            icon={<Person fontSize="large" />}
+                            color="#5AC8FA"
+                            onClick={() => {
+                                fetchTrainingDemographics();
+                                setOpenTrainingDemoModal(true);
+                            }}
+                        />
+
                     </Grid>
 
                     {/* Age Demographics Modal */}
@@ -196,6 +223,24 @@ const Overview = () => {
                         </DialogTitle>
                         <DialogContent dividers><SessionSales /></DialogContent>
                     </Dialog>
+
+                    <Dialog open={openTrainingDemoModal} onClose={() => setOpenTrainingDemoModal(false)} fullWidth maxWidth="md">
+    <DialogTitle>
+        Training Demographics
+        <IconButton onClick={() => setOpenTrainingDemoModal(false)} sx={{ position: 'absolute', top: 8, right: 8 }}>
+            <Close />
+        </IconButton>
+    </DialogTitle>
+    <DialogContent dividers>
+        <TrainingDemographics
+            branchList={branchList}
+            selectedBranch={selectedBranch}
+            onBranchChange={(branchId) => setSelectedBranch(branchId)}
+        />
+    </DialogContent>
+</Dialog>
+
+
                 </>
             )}
         </Box>
