@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Typography, CircularProgress, Box, Card, CardContent, Grid, Chip } from '@mui/material';
+import { Container, Typography, CircularProgress, Box, Card, CardContent, Grid, Chip, Button } from '@mui/material';
 import axios from 'axios';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, PieChart, Pie, Cell, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import baseURL from "../../../utils/baseURL";
 import { getUser } from '../../../utils/helpers';
 
@@ -51,6 +53,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 const LogCharts = ({ branchId }) => {
     const user = getUser();
     const branch = branchId || user.userBranch;
+    const [branchName, setBranchName] = useState("Unknown Branch");
     const [logs, setLogs] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -62,6 +65,9 @@ const LogCharts = ({ branchId }) => {
     const [trainingStats, setTrainingStats] = useState(null);
     const [loadingStats, setLoadingStats] = useState(true);
     const [genderStats, setGenderStats] = useState([]);
+    const [trainingDemographics, setTrainingDemographics] = useState([]);
+    const [selectedType, setSelectedType] = useState(null);
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -197,6 +203,39 @@ const LogCharts = ({ branchId }) => {
         fetchTrainingStats(); // Only fetch once per branch change
     }, [branch]);
 
+    const fetchTrainingDemographics = async () => {
+        try {
+            const res = await axios.post(`${baseURL}/availTrainer/training-demographics`, {
+                userBranch: branch
+            });
+            setTrainingDemographics(res.data.trainingDemographics);
+        } catch (err) {
+            console.error("Error fetching training demographics:", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchTrainingDemographics();
+    }, [branch]);
+
+    useEffect(() => {
+        const fetchBranchName = async () => {
+            if (!branch) return;
+            try {
+                const token = localStorage.getItem("token");
+                const { data } = await axios.get(`${baseURL}/branch/get-branch/${branch}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                setBranchName(data.branch.name);
+            } catch (err) {
+                console.error("Failed to fetch branch name:", err);
+                setBranchName("Unknown Branch");
+            }
+        };
+
+        fetchBranchName();
+    }, [branch]);
+
     if (loadingStats) {
         return (
             <Box sx={{
@@ -237,6 +276,151 @@ const LogCharts = ({ branchId }) => {
             </Container>
         );
     }
+
+    const generateTrainingDemographicsPDF = () => {
+        const doc = new jsPDF();
+        const currentDate = new Date().toLocaleString();
+        const brandColor = [33, 150, 243];
+        const textColor = [40, 40, 40];
+        const titleColor = [20, 20, 20];
+
+        // === HEADER ===
+        doc.setFont("helvetica", "bold").setFontSize(16).setTextColor(...titleColor);
+        doc.text("Training Type Demographics Report", 105, 20, { align: "center" });
+
+        doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(100);
+        doc.text(`Branch: ${branchName || "All Branches"}`, 14, 28);
+        doc.text(`Generated: ${currentDate}`, 14, 34);
+        doc.setDrawColor(180);
+        doc.line(14, 38, 196, 38);
+
+        // === NO DATA CASE ===
+        if (!trainingDemographics?.length) {
+            doc.setFont("helvetica", "normal").setFontSize(12).setTextColor(...textColor);
+            doc.text("No training demographic data available.", 105, 60, { align: "center" });
+            return doc.save("Training_Demographics_Report.pdf");
+        }
+
+        // === SECTION: Summary Header ===
+        doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(...titleColor);
+        doc.text("------ Summary ------", 105, 46, { align: "center" });
+
+        // === SUMMARY TABLE ===
+        autoTable(doc, {
+            startY: 50,
+            head: [["Training Type", "Male", "Female", "Total"]],
+            body: trainingDemographics.map(e => [
+                e.trainingType,
+                e.male || 0,
+                e.female || 0,
+                (e.male || 0) + (e.female || 0)
+            ]),
+            theme: "striped",
+            headStyles: {
+                fillColor: brandColor,
+                textColor: 255,
+                fontStyle: "bold",
+                halign: "center"
+            },
+            styles: {
+                font: "helvetica",
+                fontSize: 10,
+                cellPadding: 3
+            },
+            columnStyles: {
+                0: { halign: "left", fontStyle: "bold", cellWidth: 70 },
+                1: { halign: "center" },
+                2: { halign: "center" },
+                3: { halign: "center" }
+            }
+        });
+
+        let y = doc.lastAutoTable.finalY + 10;
+
+        // === SECTION: Breakdown Header ===
+        doc.setFont("helvetica", "bold").setFontSize(12).setTextColor(...titleColor);
+        doc.text("------ Training Type Breakdown ------", 105, y, { align: "center" });
+        y += 8;
+
+        // === DETAILED SECTION PER TRAINING TYPE ===
+        trainingDemographics.forEach((entry, idx) => {
+            const { trainingType, topGender, genderCount, averageAgeBracket, users = [] } = entry;
+
+            if (y > 240) {
+                doc.addPage();
+                y = 20;
+            }
+
+            const blockStartY = y;
+
+            // We'll estimate the height first
+            let estimatedHeight = 30 + (users.length ? users.length * 7 : 10);
+
+            // Pre-fill background block
+            doc.setFillColor(248, 248, 248); // very light gray
+            doc.rect(13, blockStartY - 1, 184, estimatedHeight, 'F'); // fill background
+
+            // === Section Title Header ===
+            doc.setFont("helvetica", "bold").setFontSize(11).setTextColor(...titleColor);
+            doc.setFillColor(240, 240, 240);
+            doc.rect(14, y, 182, 8, 'F');
+            doc.text(`${trainingType} – Detailed Breakdown`, 18, y + 5.5);
+            y += 10;
+
+            // === Stat Box ===
+            doc.setFont("helvetica", "normal").setFontSize(10).setTextColor(...textColor);
+            doc.setDrawColor(200);
+            doc.rect(14, y - 3, 182, 12);
+            doc.text(`Top Gender: ${topGender || "N/A"} (${genderCount || 0})`, 18, y + 4);
+            doc.text(`Average Age Bracket: ${averageAgeBracket || "N/A"}`, 110, y + 4);
+            y += 16;
+
+            // === Users Table ===
+            if (!users.length) {
+                doc.setFontSize(10).setTextColor(120);
+                doc.text("No user data available for this training type.", 18, y);
+                y += 10;
+            } else {
+                autoTable(doc, {
+                    startY: y,
+                    head: [["Name", "Age", "Gender"]],
+                    body: users.map(u => [u.name, `${u.age} y/o`, u.gender]),
+                    theme: "grid",
+                    headStyles: {
+                        fillColor: [50, 50, 50],
+                        textColor: 255,
+                        fontStyle: "bold",
+                        fontSize: 10,
+                    },
+                    styles: {
+                        font: "helvetica",
+                        fontSize: 9,
+                        cellPadding: 2.5
+                    },
+                    columnStyles: {
+                        0: { halign: "left", cellWidth: 80 },
+                        1: { halign: "center" },
+                        2: { halign: "center" }
+                    }
+                });
+                y = doc.lastAutoTable.finalY + 6;
+            }
+
+            // Draw border around block (overlapping fill)
+            const blockHeight = y - blockStartY;
+            doc.setDrawColor(210);
+            doc.rect(13, blockStartY - 1, 184, blockHeight + 2);
+
+            y += 10;
+
+            if (idx < trainingDemographics.length - 1 && y > 250) {
+                doc.addPage();
+                y = 20;
+            }
+        });
+
+        doc.save(`Training_Demographics_Report_${branchName || "AllBranches"}.pdf`);
+    };
 
     return (
         <Box sx={{
@@ -554,6 +738,152 @@ const LogCharts = ({ branchId }) => {
                             </CardContent>
                         </Card>
                     </Grid>
+                    {/* Training Demographics */}
+                    {trainingDemographics.length > 0 && (
+                        <Grid item xs={12}>
+                            <Card
+                                sx={{
+                                    borderRadius: '16px',
+                                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                                    height: '100%',
+                                }}
+                            >
+                                <CardContent sx={{ p: 4 }}>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            mb: 2
+                                        }}
+                                    >
+                                        <Typography
+                                            variant="h6"
+                                            sx={{
+                                                fontWeight: 600,
+                                                color: COLORS.darkGray,
+                                            }}
+                                        >
+                                            Training Type Demographics
+                                        </Typography>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={generateTrainingDemographicsPDF}
+                                        >
+                                            Export PDF
+                                        </Button>
+                                    </Box>
+
+                                    <Typography
+                                        variant="body2"
+                                        sx={{ color: COLORS.gray, mb: 2 }}
+                                    >
+                                        Click a bar to view detailed breakdown of users.
+                                    </Typography>
+
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <BarChart
+                                            data={trainingDemographics}
+                                            layout="vertical"
+                                            margin={{ top: 10, right: 30, left: 40, bottom: 10 }}
+                                            onClick={(e) => {
+                                                if (e?.activePayload?.[0]?.payload) {
+                                                    setSelectedType(e.activePayload[0].payload);
+                                                }
+                                            }}
+                                        >
+                                            <CartesianGrid strokeDasharray="3 3" stroke={COLORS.gray} opacity={0.3} />
+                                            <XAxis
+                                                type="number"
+                                                allowDecimals={false}
+                                                tick={{ fill: COLORS.gray, fontSize: 12 }}
+                                            />
+                                            <YAxis
+                                                dataKey="trainingType"
+                                                type="category"
+                                                tick={{ fill: COLORS.gray, fontSize: 13 }}
+                                            />
+                                            <Tooltip content={<CustomTooltip />} />
+
+                                            {/* Male Bar */}
+                                            <Bar dataKey="male" radius={[0, 6, 6, 0]} fill={COLORS.primary}>
+                                                {trainingDemographics.map((entry, index) => (
+                                                    <Cell key={`male-${index}`} />
+                                                ))}
+                                                <LabelList
+                                                    content={({ x, y, width, height, index }) => {
+                                                        const entry = trainingDemographics[index];
+                                                        const showNoUser = (entry.male || 0) === 0 && (entry.female || 0) === 0;
+                                                        const showNoMale = (entry.female || 0) > 0 && (entry.male || 0) === 0;
+
+                                                        if (showNoUser) {
+                                                            return (
+                                                                <text
+                                                                    x={x + 20}
+                                                                    y={y + height / 2 + 5}
+                                                                    fill={COLORS.gray}
+                                                                    fontSize={12}
+                                                                >
+                                                                    No user chose this type
+                                                                </text>
+                                                            );
+                                                        }
+
+                                                        if (showNoMale) {
+                                                            return (
+                                                                <text
+                                                                    x={x + 20}
+                                                                    y={y + height / 2 + 5}
+                                                                    fill={COLORS.gray}
+                                                                    fontSize={12}
+                                                                >
+                                                                    No male
+                                                                </text>
+                                                            );
+                                                        }
+
+                                                        return null;
+                                                    }}
+                                                />
+                                            </Bar>
+
+                                            {/* Female Bar */}
+                                            <Bar dataKey="female" radius={[0, 6, 6, 0]} fill={COLORS.pink}>
+                                                {trainingDemographics.map((entry, index) => (
+                                                    <Cell key={`female-${index}`} />
+                                                ))}
+                                                <LabelList
+                                                    content={({ x, y, width, height, index }) => {
+                                                        const entry = trainingDemographics[index];
+                                                        const showNoUser = (entry.male || 0) === 0 && (entry.female || 0) === 0;
+                                                        const showNoFemale = (entry.male || 0) > 0 && (entry.female || 0) === 0;
+
+                                                        if (showNoFemale) {
+                                                            return (
+                                                                <text
+                                                                    x={x + 20}
+                                                                    y={y + height / 2 + 5}
+                                                                    fill={COLORS.gray}
+                                                                    fontSize={12}
+                                                                >
+                                                                    No female
+                                                                </text>
+                                                            );
+                                                        }
+
+                                                        return null;
+                                                    }}
+                                                />
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        </Grid>
+                    )}
+
+                    {/*Training usage*/}
                     {trainingStats && (
                         <Grid item xs={12} md={6}>
                             <Card sx={{
@@ -607,6 +937,7 @@ const LogCharts = ({ branchId }) => {
                             </Card>
                         </Grid>
                     )}
+                    {/*Training type*/}
                     {trainingStats?.typeStats?.length > 0 && (
                         <Grid item xs={12} md={6}>
                             <Card sx={{
@@ -650,6 +981,7 @@ const LogCharts = ({ branchId }) => {
                             </Card>
                         </Grid>
                     )}
+                    {/*Gender distribution*/}
                     {genderStats.length > 0 && (
                         <Grid item xs={12} md={6}>
                             <Card sx={{
@@ -707,6 +1039,101 @@ const LogCharts = ({ branchId }) => {
                         </Grid>
                     )}
                 </Grid>
+                {/*Modal for training type demographics*/}
+                {selectedType && (
+                    <Box
+                        sx={{
+                            position: "fixed",
+                            top: 0,
+                            left: 0,
+                            width: "100vw",
+                            height: "100vh",
+                            backgroundColor: "rgba(0,0,0,0.6)",
+                            display: "flex",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            zIndex: 2000
+                        }}
+                        onClick={() => setSelectedType(null)}
+                    >
+                        <Card
+                            sx={{
+                                width: '90%',
+                                maxWidth: 600,
+                                borderRadius: 4,
+                                p: 4,
+                                maxHeight: '90vh',
+                                overflowY: 'auto'
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: COLORS.darkGray }}>
+                                {selectedType.trainingType} - Demographics
+                            </Typography>
+
+                            {/* Top Gender */}
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <Typography variant="body1" sx={{ mr: 1 }}>
+                                    <strong>Top Gender:</strong>
+                                </Typography>
+                                <Chip
+                                    label={`${selectedType.topGender} (${selectedType.genderCount})`}
+                                    sx={{
+                                        backgroundColor:
+                                            selectedType.topGender === "male"
+                                                ? COLORS.primary
+                                                : selectedType.topGender === "female"
+                                                    ? COLORS.pink
+                                                    : COLORS.gray,
+                                        color: "#fff",
+                                        fontWeight: 600
+                                    }}
+                                />
+                            </Box>
+
+                            {/* Age Bracket */}
+                            <Typography variant="body1" sx={{ mb: 2 }}>
+                                <strong>Average Age Bracket:</strong> {selectedType.averageAgeBracket}
+                            </Typography>
+
+                            {/* Users List */}
+                            {selectedType.users.length > 0 ? (
+                                <>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                                        All Users Who Availed This Training Type:
+                                    </Typography>
+                                    {selectedType.users.map((user, i) => (
+                                        <Chip
+                                            key={i}
+                                            label={`${user.name} • ${user.gender} • ${user.age} y/o`}
+                                            sx={{
+                                                mr: 1,
+                                                mb: 1,
+                                                backgroundColor:
+                                                    user.gender === "male"
+                                                        ? "#E3F2FD"
+                                                        : user.gender === "female"
+                                                            ? "#FCE4EC"
+                                                            : COLORS.lightGray,
+                                                color:
+                                                    user.gender === "male"
+                                                        ? COLORS.primary
+                                                        : user.gender === "female"
+                                                            ? COLORS.pink
+                                                            : COLORS.darkGray,
+                                                fontWeight: 500
+                                            }}
+                                        />
+                                    ))}
+                                </>
+                            ) : (
+                                <Typography variant="body2" color="textSecondary">
+                                    No users available for this training type.
+                                </Typography>
+                            )}
+                        </Card>
+                    </Box>
+                )}
             </Container>
         </Box>
     );
