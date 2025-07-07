@@ -360,7 +360,7 @@ const MembershipSales = ({ branchId }) => {
           >
             <Typography variant="subtitle2" color="textSecondary">Total Daily Sales</Typography>
             <Typography variant="body1" color="primary">
-              With Promo:{" "}
+              Promotional Sales:{" "}
               {formatCurrency(
                 transactions.today
                   .filter((t) => t.promo)
@@ -368,7 +368,7 @@ const MembershipSales = ({ branchId }) => {
               )}
             </Typography>
             <Typography variant="body1" color="primary">
-              Without Promo:{" "}
+              Regular Sales:{" "}
               {formatCurrency(
                 transactions.today
                   .filter((t) => !t.promo)
@@ -379,7 +379,6 @@ const MembershipSales = ({ branchId }) => {
           {renderTable(transactions.today, "Today's Transactions")}
         </Grid>
       )}
-
 
       {viewMode === "monthly" && (
         <Grid item xs={12}>
